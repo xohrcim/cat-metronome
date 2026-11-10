@@ -1,0 +1,1000 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#101319">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>貓・雀 節拍器</title>
+<style>
+  :root{
+    --bg:#101319;
+    --card:#1a1f2a;
+    --card2:#222837;
+    --line:#303748;
+    --text:#f3f5fa;
+    --muted:#98a2b6;
+    --cat:#ffb45c;
+    --bird:#6fd6c4;
+    --danger:#ff7a7a;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{margin:0;padding:0;min-height:100%;background:var(--bg);color:var(--text)}
+  body{
+    font-family:-apple-system,BlinkMacSystemFont,"PingFang HK","Noto Sans TC","Microsoft JhengHei","Segoe UI",sans-serif;
+    padding:calc(14px + env(safe-area-inset-top)) 14px calc(20px + env(safe-area-inset-bottom));
+    display:flex;justify-content:center;
+  }
+  .app{width:100%;max-width:460px}
+  header{display:flex;align-items:baseline;justify-content:space-between;margin:4px 2px 14px}
+  h1{font-size:19px;font-weight:650;letter-spacing:.5px;margin:0}
+  .sub{font-size:12px;color:var(--muted)}
+  .panel{background:var(--card);border:1px solid var(--line);border-radius:20px;padding:16px;margin-bottom:12px}
+
+  /* 視覺拍點 */
+  .visual{display:flex;flex-direction:column;align-items:center;gap:14px;padding:20px 16px 18px}
+  .disc{
+    width:158px;height:158px;border-radius:50%;
+    background:radial-gradient(circle at 50% 42%,#2c3446,#1c2230 70%);
+    border:2px solid #3a4358;
+    display:flex;align-items:center;justify-content:center;
+    box-shadow:0 10px 30px rgba(0,0,0,.35),inset 0 1px 0 rgba(255,255,255,.05);
+    will-change:transform;
+  }
+  .disc svg{width:92px;height:92px;display:none}
+  .disc svg.show{display:block}
+  .ring{width:100%;height:100%;border-radius:50%;display:flex;align-items:center;justify-content:center}
+  .dots{display:flex;gap:10px;min-height:14px;align-items:center}
+  .dot{width:11px;height:11px;border-radius:50%;background:#394256;transition:background .1s,transform .1s}
+  .dot.on{background:var(--cat);transform:scale(1.35)}
+  .dot.on.bird{background:var(--bird)}
+  .dot.first{box-shadow:0 0 0 2px rgba(255,255,255,.13)}
+
+  /* 速度 */
+  .tempo-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px}
+  .label{font-size:13px;color:var(--muted);letter-spacing:.5px}
+  .bpm-row{display:flex;align-items:center;justify-content:center;gap:14px;margin:4px 0 10px}
+  .step{
+    width:46px;height:46px;border-radius:14px;border:1px solid var(--line);
+    background:var(--card2);color:var(--text);font-size:22px;line-height:1;
+    display:flex;align-items:center;justify-content:center;cursor:pointer;user-select:none
+  }
+  .step:active{transform:scale(.94);background:#2e3648}
+  .bpm{font-variant-numeric:tabular-nums;font-size:62px;font-weight:700;letter-spacing:-2px;min-width:132px;text-align:center;line-height:1.05}
+  .bpm small{display:block;font-size:12px;font-weight:500;color:var(--muted);letter-spacing:2px;margin-top:2px}
+  input[type=range]{
+    -webkit-appearance:none;appearance:none;width:100%;height:30px;background:transparent;margin:0;cursor:pointer
+  }
+  input[type=range]::-webkit-slider-runnable-track{height:6px;border-radius:99px;background:#394256}
+  input[type=range]::-webkit-slider-thumb{
+    -webkit-appearance:none;width:24px;height:24px;border-radius:50%;background:var(--cat);
+    border:3px solid #1a1f2a;margin-top:-9px;box-shadow:0 2px 8px rgba(0,0,0,.4)
+  }
+  input[type=range]::-moz-range-track{height:6px;border-radius:99px;background:#394256}
+  input[type=range]::-moz-range-thumb{width:20px;height:20px;border:3px solid #1a1f2a;border-radius:50%;background:var(--cat)}
+  .chips{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap}
+  .chip{
+    flex:1;min-width:70px;padding:9px 4px;border-radius:12px;border:1px solid var(--line);
+    background:var(--card2);color:var(--muted);font-size:12px;text-align:center;cursor:pointer
+  }
+  .chip:active{background:#2e3648}
+  .chip.active{border-color:var(--cat);color:var(--cat)}
+
+  /* 設定列 */
+  .row-label{font-size:13px;color:var(--muted);margin:0 0 9px}
+  .row-head{display:flex;align-items:center;justify-content:space-between}
+  .row-head .row-label{margin-bottom:9px}
+  .preview{
+    border:1px solid var(--line);background:var(--card2);color:var(--cat);
+    border-radius:10px;padding:6px 12px;font-size:12px;cursor:pointer;min-height:34px;margin-bottom:9px
+  }
+  .preview:active{background:#2e3648}
+  .seg{display:flex;gap:8px}
+  .seg button{
+    flex:1;min-height:52px;border-radius:14px;border:1px solid var(--line);background:var(--card2);
+    color:var(--muted);font-size:13px;cursor:pointer;display:flex;flex-direction:column;
+    align-items:center;justify-content:center;gap:3px;padding:6px 2px
+  }
+  .seg button svg{width:22px;height:22px}
+  .seg button.active{background:#33303a;border-color:var(--cat);color:var(--cat)}
+  .seg button.active.b{background:#223732;border-color:var(--bird);color:var(--bird)}
+  .seg button:active{transform:scale(.97)}
+  .bar{display:flex;gap:8px}
+  .bar button{
+    flex:1;min-height:44px;border-radius:12px;border:1px solid var(--line);background:var(--card2);
+    color:var(--muted);font-size:14px;cursor:pointer
+  }
+  .bar button.active{background:#33303a;border-color:var(--cat);color:var(--cat)}
+  .bar button:active{transform:scale(.97)}
+  .slider-row{display:flex;align-items:center;gap:12px;margin-top:14px}
+  .slider-row .label{min-width:38px}
+  .toggle{
+    display:flex;align-items:center;justify-content:space-between;margin-top:12px;
+    font-size:13px;color:var(--muted);cursor:pointer;min-height:40px
+  }
+  .switch{width:46px;height:27px;border-radius:99px;background:#394256;position:relative;transition:background .18s}
+  .switch::after{content:"";position:absolute;top:3px;left:3px;width:21px;height:21px;border-radius:50%;background:#fff;transition:transform .18s}
+  .switch.on{background:var(--bird)}
+  .switch.on::after{transform:translateX(19px)}
+
+  /* 控制 */
+  .controls{display:flex;gap:10px;margin-top:2px}
+  .btn{
+    border:1px solid var(--line);border-radius:16px;min-height:60px;font-size:16px;font-weight:600;
+    cursor:pointer;color:var(--text);background:var(--card2)
+  }
+  .btn:active{transform:scale(.98)}
+  #play{flex:2;background:var(--cat);color:#241a0d;border-color:transparent;font-size:18px}
+  #play.stop{background:var(--danger);color:#2a1111}
+  #tap{flex:1;font-size:15px}
+  .note{font-size:11.5px;line-height:1.65;color:var(--muted);margin:12px 4px 0}
+  .note b{color:#cbd3e1;font-weight:600}
+  .warn{background:#4a2020;border:1px solid #ff7a7a;color:#ffd7d7;border-radius:12px;
+        padding:12px 14px;font-size:13px;line-height:1.6;margin-bottom:12px}
+  .fatal{background:#3a2418;border:1px solid #ffb45c;color:#ffe2bd;border-radius:12px;
+         padding:12px 14px;font-size:12px;line-height:1.6;margin-bottom:12px;
+         white-space:pre-wrap;word-break:break-all;display:none}
+  .status{font-size:11.5px;color:var(--muted);margin:10px 4px 0;line-height:1.6}
+</style>
+<script>
+/* 診斷用：即使主程式死咗，都要睇到發生咩事 */
+(function(){
+  var pending = [];
+  function flush(){
+    var d = document.getElementById('fatal');
+    if(d && pending.length){ d.style.display = 'block'; d.textContent = pending.join('\n'); }
+  }
+  window.__diag = function(msg){
+    pending.push(String(msg));
+    flush();
+  };
+  document.addEventListener('DOMContentLoaded', flush);
+  window.addEventListener('error', function(e){
+    window.__diag('JavaScript 錯誤：' + (e.message || '未知') + '（第 ' + (e.lineno || '?') + ' 行）');
+  });
+  window.addEventListener('unhandledrejection', function(e){
+    window.__diag('非同步錯誤：' + (e.reason || '未知'));
+  });
+})();
+</script>
+</head>
+<body>
+<div class="app">
+  <div class="warn" id="jsWarn">
+    ⚠️ 見到呢行紅字 = JavaScript 冇執行，所有掣都唔會鬱。<br>
+    請用 <b>Chrome</b> 直接開啟呢個 HTML 檔；唔好用「HTML 檢視器」、檔案預覽、或通訊軟件內建瀏覽器。
+  </div>
+  <div class="fatal" id="fatal"></div>
+  <noscript><div class="warn">⚠️ 瀏覽器停用咗 JavaScript，請改用 Chrome 開啟。</div></noscript>
+  <header>
+    <h1>貓・雀 節拍器</h1>
+    <span class="sub">v6 ・診斷版</span>
+  </header>
+
+  <section class="panel visual">
+    <div class="disc" id="disc">
+      <div class="ring">
+        <!-- 貓 -->
+        <svg id="ico-cat" class="show" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M22 42 L20 16 L40 30" fill="#ffb45c"/>
+          <path d="M78 42 L80 16 L60 30" fill="#ffb45c"/>
+          <path d="M24 39 L23 24 L37 32" fill="#ff8f6b" opacity=".75"/>
+          <path d="M76 39 L77 24 L63 32" fill="#ff8f6b" opacity=".75"/>
+          <ellipse cx="50" cy="56" rx="34" ry="30" fill="#ffb45c"/>
+          <ellipse cx="38" cy="52" rx="4.2" ry="5.6" fill="#2b2118"/>
+          <ellipse cx="62" cy="52" rx="4.2" ry="5.6" fill="#2b2118"/>
+          <path d="M46 65 Q50 69 54 65" stroke="#2b2118" stroke-width="2.4" stroke-linecap="round"/>
+          <path d="M50 62 l-3 -2 h6 z" fill="#ff8f6b"/>
+          <path d="M17 60 L32 62 M17 67 L32 66 M83 60 L68 62 M83 67 L68 66" stroke="#ffd8a8" stroke-width="2" stroke-linecap="round"/>
+        </svg>
+        <!-- 雀 -->
+        <svg id="ico-bird" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <ellipse cx="52" cy="55" rx="30" ry="24" fill="#6fd6c4"/>
+          <path d="M30 50 Q45 30 68 44 Q58 62 34 60 Z" fill="#3fae9e"/>
+          <circle cx="63" cy="44" r="9.5" fill="#8ce6d6"/>
+          <circle cx="65.5" cy="42" r="2.4" fill="#173b38"/>
+          <path d="M73 44 L88 48 L73 52 Z" fill="#ffb45c"/>
+          <path d="M27 58 L12 72 L34 68 Z" fill="#3fae9e"/>
+          <path d="M44 77 L42 88 M56 77 L58 88" stroke="#ffb45c" stroke-width="2.6" stroke-linecap="round"/>
+        </svg>
+        <!-- 混合 -->
+        <svg id="ico-mix" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <circle cx="36" cy="50" r="21" fill="#ffb45c"/>
+          <path d="M21 38 L19 22 L32 31 M51 38 L53 22 L40 31" fill="#ffb45c"/>
+          <circle cx="30" cy="47" r="2.8" fill="#2b2118"/><circle cx="43" cy="47" r="2.8" fill="#2b2118"/>
+          <path d="M33 57 Q36 60 39 57" stroke="#2b2118" stroke-width="2" stroke-linecap="round"/>
+          <ellipse cx="70" cy="58" rx="19" ry="15" fill="#6fd6c4"/>
+          <circle cx="76" cy="49" r="6" fill="#8ce6d6"/>
+          <circle cx="78" cy="48" r="1.7" fill="#173b38"/>
+          <path d="M82 50 L94 53 L82 56 Z" fill="#ffb45c"/>
+          <path d="M58 55 Q68 42 82 51 Q76 64 60 62 Z" fill="#3fae9e"/>
+        </svg>
+      </div>
+    </div>
+    <div class="dots" id="dots"></div>
+  </section>
+
+  <section class="panel">
+    <div class="tempo-head"><span class="label">速度</span><span class="label" id="mark">中速</span></div>
+    <div class="bpm-row">
+      <div class="step" id="minus" role="button" aria-label="減慢 1 BPM">−</div>
+      <div class="bpm"><span id="bpmNum">100</span><small>BPM</small></div>
+      <div class="step" id="plus" role="button" aria-label="加快 1 BPM">＋</div>
+    </div>
+    <input type="range" id="bpmRange" min="40" max="240" step="1" value="100" aria-label="速度滑桿">
+    <div class="chips">
+      <div class="chip" data-bpm="60">慢 60</div>
+      <div class="chip" data-bpm="90">行板 90</div>
+      <div class="chip" data-bpm="120">快 120</div>
+      <div class="chip" data-bpm="160">急 160</div>
+    </div>
+  </section>
+
+  <section class="panel">
+    <div class="row-head"><p class="row-label">聲音</p><button class="preview" id="preview">▶ 試聽</button></div>
+    <div class="seg" id="soundSeg">
+      <button data-mode="cat" class="active">
+        <svg viewBox="0 0 24 24" fill="none"><path d="M4 10 3 3l5 3a9 9 0 1 1-4 4Z" fill="currentColor"/><circle cx="9" cy="12" r="1.2" fill="#1a1f2a"/><circle cx="15" cy="12" r="1.2" fill="#1a1f2a"/></svg>
+        貓叫
+      </button>
+      <button data-mode="bird" class="b">
+        <svg viewBox="0 0 24 24" fill="none"><path d="M3 14c0-4 4-7 9-7 4 0 7 2 8 5l3 1-3 2c-1 4-5 6-9 6-5 0-8-3-8-7Z" fill="currentColor"/><circle cx="16" cy="10" r="1.1" fill="#173b38"/></svg>
+        雀叫
+      </button>
+      <button data-mode="mix">
+        <svg viewBox="0 0 24 24" fill="none"><circle cx="8" cy="12" r="5" fill="#ffb45c"/><circle cx="16" cy="12" r="5" fill="#6fd6c4" opacity=".9"/></svg>
+        混合
+      </button>
+    </div>
+    <p class="row-label" style="margin-top:16px">每小節拍數（第一拍重音）</p>
+    <div class="bar" id="beatBar">
+      <button data-beats="2">2 / 4</button>
+      <button data-beats="3">3 / 4</button>
+      <button data-beats="4" class="active">4 / 4</button>
+      <button data-beats="6">6 / 8</button>
+    </div>
+    <div class="slider-row">
+      <span class="label">音量</span>
+      <input type="range" id="vol" min="0" max="100" step="1" value="80" aria-label="音量">
+    </div>
+    <div class="toggle" id="vibToggle" role="button">
+      <span>跟拍震動（部分 Android 手機支援）</span>
+      <span class="switch" id="vibSwitch"></span>
+    </div>
+  </section>
+
+  <div class="controls">
+    <button class="btn" id="play">▶ 開始</button>
+    <button class="btn" id="tap">拍子 Tap</button>
+  </div>
+
+  <p class="note">
+    <b>每拍一聲</b>：重拍只係大聲啲，唔會變成兩聲，亦唔再移調。<br>
+    貓叫 = <b>一段經你確認嘅真實錄音</b>（喵 A）；雀叫 = 瀏覽器即時合成。全部內嵌，<b>斷網都用得</b>。<br>
+    <b>iPhone 注意：</b>第一次要撳「開始」先會出聲；靜音鍵開咗會冇聲。<br>
+    混合模式 = 第一拍貓叫、其餘拍雀叫。按空白鍵亦可開始／停止。<br>
+    錄音來源：<a href="https://freesound.org/people/steffcaffrey/sounds/479272/" target="_blank" rel="noopener" style="color:var(--cat)">Freesound「New Cat Meow 1」</a>（steffcaffrey，<a href="https://creativecommons.org/publicdomain/zero/1.0/" target="_blank" rel="noopener" style="color:var(--cat)">CC0 1.0</a>；用官方 HQ 試聽 MP3 轉檔）。只做修剪、去直流、溫和標準化、淡入淡出，<b>冇縮時、冇移調</b>。授權只喺該 Freesound 檔案頁面確認，<b>未做跨平台 cross-check</b>。
+  </p>
+  <p class="status" id="status">狀態：未啟動（如果一直見到呢行，代表 JavaScript 冇執行）</p>
+</div>
+
+<script>
+try{
+(function(){
+  'use strict';
+
+  /* ---------- 狀態 ---------- */
+  var bpm = 100;
+  var beats = 4;
+  var mode = 'cat';
+  var volume = 0.8;
+  var vibrateOn = false;
+  var playing = false;
+
+  var ctx = null, master = null, sessionGain = null, noiseBuffer = null;
+  var catBuffer = null;
+  var CAT_WAV_B64 = [
+    "UklGRrhZAABXQVZFZm10IBAAAAABAAEAIlYAAESsAAACABAAZGF0YZRZAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+    "AAAAAAAAAAAAAAAAAAAAAAAAAP7/AAAAAP//AAAAAAEAAwADAAEAAAACAP//AgACAAIABgAHAP////////r////5/wAAAAD7//j/",
+    "+P8DAAQAAAAHAAAACwASABMABAAQAAwA+v8BAPn/7f/x/+D/5P/w//3/BQAFAA4AFwAcAA4AGAAcABMABQABAPj/6v/v/+H/CgDv",
+    "/9P/3P/h/+//7/8PABgAKwBMAFUAVQBQADAADwDv/6T/m/+k/6n/n//F//j/DwArAFAARwBCADAAJgAmAAoA+P/m/+b/4f/0//j/",
+    "7//q//j/CgATAAoA+P8BAAUA/f/9//T/CgAmAA8ABQD9//j/5v/Y//T/7//q/wUAEwAmACYAIgAwAAUACgABAO//9P/m/9P/5v/Y",
+    "//j/DwAFABgAGAAiAAoACgAYAP3/+P/q/+H/AQD9//T/AQAFABMAHQAKAAoA/f/0//3/BQABAAoAHQATAAEA+P/m/+//9P/m/+H/",
+    "5v/m//3/EwAmACYAIgAmABMACgAFAP3//f/m/+r/+P/m//T/AQAFAP3/BQAFAPj/9P/9/wEAAQAKABMADwABAP3/EwABAA8AEwAP",
+    "APT/AQD9/9z/+P/v/+r/AQAPACIAHQAKAPj/9P/4//j/6v8BAP3//f8rABMAIgATAP3/6v/T/+H/+P/4/wUACgD4/xgAAQABABgA",
+    "GAAmAB0AHQATAA8A+P/K/8r/sv/F//j/6v/4/woADwArADQAIgAwACsAIgAiABMAHQATAO//zv+y/6n/n/+7//3//f8FADkAMABH",
+    "AEcAMAAdAAUABQAYAPj//f/4/+//0//A/5//yv8BAO//AQAPAEwANAAmAEcAIgAiAPj/7//c/+H/4f/0/+b/7//9/wUAEwAPAA8A",
+    "IgABAO//6v/h//j/BQATAPj/BQArADkAIgAYAAEA9P/F/7f/5v/q/+b/+P/9//3/DwAwACYAGAAYACYANAAYABgAGAD0/+H/2P/A",
+    "/7v/5v/c/8D/4f/0/w8AIgA0AEwAVQBjAEcANAAwAA8A7/+y/3X/cf91/5//5v/m/w8AVQB2AJcAoACJAFUAKwATAP3/t/9//3//",
+    "iP9i/zT/OP9i/+r/PgBCAI0A/gBlAZgBSQH+AMUAdgDY/9b+JP43/in+Ef4p/rX+E/+t/3YABwGrAVQC+AJMAysDhwK+AakAWf8f",
+    "/hT9Qvyn+6z7APzF/OL9AP+8AHACjQOBBJEFMAb8BRIFaANNAT3/qfw1+sP4s/cD+AT5Hvo9/L/+WwFEBOcGqAgkChILeAqfCH4F",
+    "lAFk/Ub5ePXR8rjxXPKS9GT3A/t6/8EDqwdiC0sO+g9cEFYPlwxwCLsCJfyP9YHvR+uv6VPqle2o8+z60AEACIYNEBIQFbkVNBQT",
+    "ERENEgi0Afj58PEe7Ijoq+Z951XrZfLn+lQC4AgUD8MTxBaWF1EVZxFADXAIawL6+rnyaeyg6CPmVubk6pvx8/kXApEIcA64EpEU",
+    "MRXkE+wPTAz9CKsEPf9c+A/xGuwH6VPnfOmS7nj1A/5rBRcL5w+FEhET2RJvEG0MhAlqBygEL/+g97Hw7OyT6dvno+rH70f3CgCz",
+    "BgEMRRB3EuMSyRGIDiULWgktB64DRf5i9kHwbuzd6FXoOeua8C/5UgFEB1oMfRB7EtASYhF1Dj4MYArVB/ADn/zJ8yLu8el85nTn",
+    "s+tS8qL7wQOlCZEOlhFIEicSGxBTDeULlArOCLAEU/vr8WXsb+cp5Avm8+rE80n+OQaFDEsRkBM0FN4SFA/sDJoLMAn+BmUBC/cV",
+    "733qm+Up5G/n2+3r99oBwQnwDwgTPBPZEjcQQwxlCpIJBglzB14A3/X+7qvprORO5M3nZe+q+lIEjAsXEWYT1hPLEogO1griCVYJ",
+    "uwhMBrT9PvSX7qToFuSj5AfpO/Iw/e4FQA0iEn0TGxPbEKEMfQoRCoAJvQkiBtr7q/KB7GTmP+Pp5JDqH/UYAJ8Ilw/1EggTbRJI",
+    "D9YKPgnuCHIJgQpGBW36V/Ia7LzlBuNY5CHr7/arAR8KuhCLE1gTHhIJDk4KkgnBCQkLKgtaA2r4D/GT6SPjnuF05DPt1vhxA5cM",
+    "exIYFA4U/RFODRYKbQnPCc4LuQojAX72Se9O5wPhbeDf5C3vb/s+BhQPABT9FGMU6RDzC6oJjgmUCvAMTgqI/8/0IO385EvfON9C",
+    "5RTxgP1PCBcRdxWcFRgU0A/oCkcJpQmfC14O9Qk7/pL0Tewn44DdO97h5Qfymf7rCXcSphV3FXQTSw7wCYQJfQpTDTIQEQrC/dzz",
+    "v+o74UnbAd135irzxf9iC9YTsRb/FRETlA3wCYAJtQpnDoYQ8wif/N/yZOmy3yfa89xT51H0ogHfDfgUixbsFSwSkQuVCF8JdQsI",
+    "ELIRAQk4/N3x4Of43D7Xmtxd6kT4YgXmEZ0Y0xcNE9wL+QNSAfkDwAieEMQWQxI1Bqj5Re3t3rbT/tT44mP04wSCE2scYx2eFhwI",
+    "jvfj70f0ZP3VB14XPSiiKoobJQhM9DrdMspTxDPNuOAf+C0NvBoiIGUezRMeAR30Q/efAokMJBm1KoAyJSWIC1fy8tiFwB20J7qW",
+    "zrrq5AojJB4vvS9qJzIT2fq+76f1+P9gCsUdaTL3MF4aqQCk5X3Hv7A/rI66mNWl+rAhVTpVQDA9FC+vD1Xr1dje3dLt0//0F4o1",
+    "yUI6MpER6+4pzbaw4aI0qzTIsO8SGTk6MEkDR/030xp29BrYcNNG4pz3nA+ILoVGqz6oHBH4oNS2swGgPqMMvsvmGxOoOVNNSk0B",
+    "Q7gpmf5c2BnJrM3y3iH5YBikN6FJ4z7eGwb0jNMHu1CroK7Qyc/xWReOMug+hD08M3EdQfkV2BLNUdQ35KH6Lxe5NSlKdUWyJXT+",
+    "7OCryXSzZ6tZv5XkEgX6G18sizO0L4EhDgiY6S7ZBd8H71T/dBMfMI5J00VUIvf7X+Apx6avp6ciugjeEAE0Hfov+TQxMjUpHBHl",
+    "8Ejdat496Ab0qAiBJFI7uENnNDgRHu9E1S+/5q5FsI3Ib+q4Bl4dQi4cNPwwCSXRDTD3xesE5x7mIvHGCaYhBS5SNc4uRhE07r/T",
+    "D8A3s362k8xg6b4EyiCKNbQ4UTKPJ6ESqvqj6p/fYtzL6SMExRqAJuMyxTf8HL7yu9Z0x3y7O7j/xpzjeQJEHrowBTQqLqAmoxab",
+    "/L/kD9265+/5OQlkGH0tqT1QLqsEnOAgzcW/h7Zzu/jTjve6GSQwADRbL+Ur2h5zAUrn592f37npDPtbD/YheTNNPvcqrgD34XTT",
+    "XMTit9S9RNgS9qQOnyJfLIIt0yvgHzEHg/Ng7PXmHuZD9AYMPh1SJ5Y0/S61Cl7optWhxpe61bsu0FPtaAkVJMQzjTQnL88jVgyl",
+    "9KnoquB74PzwCwn3GSsjJzL8Mx4S4Oqq18vMRsJfwIzQmuqXA5UcaSx0LWgpfCSqFWb+5u6g5UnhPOqc/WkPZRvILUU5PiDO9gXf",
+    "CtQKyC+/gsfW4dn94RcoKpktcCu+J6YYA/486sPhKN6R5Uj6AhIMJEo2aEDwJgb6d93Mz9PCR7rpxAjhBv08Fs8p/S79K/glRRYU",
+    "/ffqDeRT3m3jZfvEFgYm0jNEQW8tof3Z2krNuMNaupDBg9yd+CQTQCpLMYYtdSgzHEIDMexv4RzZQ9q88UMSCSiMORxL6zofB/Xa",
+    "1cakvKW0kbzJ2SX51RXcLks0CyxgJHIYPwEE6rDh+Nw43DDxnhPaKoo4O0q8QBEN2dp7wxq7t7Qou23XrfapEVYs2DToKusjBBw8",
+    "CFfv7uTc39nX0ONdCLAnAjVRRgBLtCE56FHGLrxcuOq5vM5F7eUIsyN0MFkovh6oGRAPmvmp6JHihuFS7zIKcCKWNMxHB0QnFZDe",
+    "sMFMuti3570K1w/3ERAqJZQtkibwIIEbXwzv9tjrGOiE2gzYy/c0IGM0IEJOUCU59/5HzjO5D7T+tIvEpuAo+4IWMi2nLesjqSB6",
+    "HT4MwfQ96Bree9pe7jcQWiklPIZNojuxAmLQ5LsSuUq5ccUU43r/CxW9JjAprSK/H7kbNw14+NDsReGr1T/j4AjXKDQ6oUzXSFwW",
+    "fdszvJS1RrbavoHYrvSkCwEjtCxoJgojLiXdGokAJe2i4UTSWtR+9qkgCDmhSdZQ3yoK66/AfLXBt0i95tGU764GKBv1JvMi2B0B",
+    "II0d+AsS9lXoYtyv3VH3QRkZMnNEzEe/H/XjIb8mt6e7BcXz3Iz54QvYGoEkmyC2HIoelhpRCb718ufa1ebRSe8yGTIztUSjUEYx",
+    "q/J6xcG3oLrIwVjTbuw2ARUVQyPUIKYegSTiI8URs/eg5WfWTNeK8ikWkTFkSS9LxR0L49TAXbkivaTI4uAy+0YLfRkRIQUdSh/7",
+    "IToYfAT78j/jWNDr1LX7+ySwOxhOkUs2G1PehrultFW6k8nI4R33KwZPGUkk7SHdJswqmB6fBYTu69pHyL/Qy/ogJQo9ZlBfSSkW",
+    "19xavWe5QMFd0BzlnfXBA7kVRB65HmcoqSvoG6sBPeuX1w3NqeJDDCktTkQTURwxOPMsxv63Z7xYx1PedfYlAgMNkBziIMwkLC+U",
+    "J0ELyu5I3WvK08UC6VAdGD0qTktR7ScT6/XDz7rLwGTMrOE/8hf5BgmJHQEj/ilTM3MngAY96GrYXMrozyr5cChiP4JKgUQ3E3va",
+    "pL9lwYvKB9Xn5vHy8/m9DPwfZyX0LhU1diC7+bffwNbWyinTigFeMTBAjkPKPSwSO96NxQvJmM8u02zcv+Qb8FwKlCSNLjE4ATp5",
+    "Ig/67N0+1IvN0dvxBD0r4zj2PpExSQQB3WbQ0tNw01zVH9545Gbw3w3hKAo0lDv8M7kVtO+G2y7Tcc4f5GEQNS/CNRo75SsjAezd",
+    "T9Ol1ELRjdGl183hLfjpGcUuKTYVO6wtpAvW58PYfNXF3E74dxgkLXA5LjM+DErnItqH2SDTQtHl3N/kou/WCpknUDGTNVAxMRUz",
+    "8J/coNon10jmTg0cK3E0Qjp9KlAAJ+Dx1YLTZ8v+zkTb+uNq+NobUTI2NSE3qStvChLn8tuL2+/ce/QNFpEoNzOKNT8VT+2W3Azb",
+    "f9TjzJLXCOTr6ygE0iVgMvcz4zJxHSH5p+G04LvcW+B2ADkgqCgbMNwuWgyv6XXchNol05bOEdjQ4BXvoQ/hK4gxrzVRMksXIPMT",
+    "4v7gj9sp534IPB8wJu8xGSZJ/pXkQt9G3DnRt9EB3YLkzPWdGKkuYDKsNrcrMwsd65biyN642q3wtRNUIlko+DGmGwn2v+Fa3VzY",
+    "CdAa1Rbe7OZ2AMkiji/3M6g2pSMq/xzl9eB42+zgL/83HMwkuy4WLQgKXep633Dc2tIE0FHazeHl7XgNPSu9Mgo37zHxFbPxb+GZ",
+    "3vDaG+0iD8MhgCZRL+IdxvdI45/f2doC0rHW/d9I5lr6ghwqLosw8jNDJngEG+dv4bvf2+Ri/38azyM7KhIoNQbp5xHhJ+Cf1nPS",
+    "td5m52bwWgx2KY0uIi9LK4ITRPKN4kPj+N/l7RAPqCJSJF4ryR8l+V7iAuDL3XTTTdUq4pXqGvteGuorIStqLXsjswaP6dXjL+UQ",
+    "5qT8CBmcI84ofihZCC/otOC44BLZUtJI3SDqjPPrCeIj4ilvKsMnOBRn9hjl6ecg6lr3UBHGILIoLyiECT3oqd874bDbjNNa3fTr",
+    "8fLPA0cgyS6eLd8nBRfG+mnjnOD/413w+AtCIDgoRS1pGJf0ZONe4uTeINMP1N/hG+2i/uYaVy0QLx8q8RvEAsTn2eD353Dz+Qa/",
+    "GWQmdS5BGf7x9+H04uHfptJE0tjiRvBC//cZVi+hMvcqDRn+APTon98C43TtQgN5GSMkeC0HJ9sCMek641vg5dMdyxLWAuZk9xYT",
+    "LCz1MgsvOyFZCzHyYeQK6OLxEgKyEawcWikcIqn8VeVn5aPkedZ9zZ/Zqejq9pkQIStsNL8wGiFyCV/xo+Rh55rwcAJAE2YczCeD",
+    "IsL9B+bm5c7lrtduzHbX4eXx8hcONSzSNtIzICVzDYPz6eSZ577vjQBLEb0YcCKgIFP+yOR15aDoMN1K0NXYtec486IKrSiTNZMy",
+    "9SOUDTX0DeTQ5oTx1wIpE4gasSIoIX3+qeL94qfnfd400S3Yv+cc8xcIwCUQNaczVCU+D4f2MuQH5mDyOwTkE6AaQyPwIF78X+AC",
+    "47HnRd4J01bafedH8XYGwySeM04z3CWaDof2luVD5ibxhgSyFzEelSKHInYA+N8z3/rjXdx70SPY3uaz8VUGHCUcNDwz5yaGEDX3",
+    "BeWK5ozzvAZpGJQeuCMGI739Ntu+20viXNumz4/Y8+oV9VwHySW/NrQ1/iZkD1r3U+Ry44nunQEmF/gfMCODJREHsOHo287fEduP",
+    "zy3VZuf78p0E9SPENrQ1KCoYFJH8gOYc4qHsJ/0LEoQdwyHSJb0MVeVL3JPgftwm0Y/VHeg8824B9h6yND813invFDL+cunK4mTp",
+    "z/eUDW4eLiIGJuYXfvDi3WffBt0V0hXSxeJK8Mj77BXLL3U0hSzTGk8FUu/R5JvrBPm+Cl4aiiGSJv0UAuzR2wPhEd6Y0m7Vh+cc",
+    "89n6eBMQL9A1uCzCGAoDFe9A5KPne/TXCCwb8SFAJygeHPYO33jhA96l0RLQe+DS7aT2Qw/iLLo2UDFHIKoJ0vML5h7pTPQlBcQW",
+    "ZR6nJBUbLfJo3S/iX+Ci1czSG+TV8oP5Bg89K3E0cC7EHOcGZ/ON5QDoFPTXBbcXWiCAJsoa2PHM3hTjt98V1RvTnOMj8tz5Ig8v",
+    "Kyw1wC4zHPUGBPM35FnoCPhGCxYZ5SJZKAMK9eDz3MrlNeD51Mba+uxa90QBPBmfLikz7yhGEb77POpt47foAPmWEZcg9SlBKBIC",
+    "9N814EDkvtuP0vvbW+zD9ZoF+SDhMSMywyRhDYb4WOcs5jzwSgL8FhEk5C03GWns1NoC4ELfpdQV1crlMPRc/tsT5Ss0NPItRRmM",
+    "As3taeOh6bj3DA1zHvst5Ss7AcPeEd7A3zjWUM6i2P/pg/ZUC9onNzagN9MoMA9O+NPlWeLh6Jz6dRF7IMMw7iXk9eHfxeLt3vTR",
+    "Fcxa2mHqqPlbFcYvBzgENkcjtQow9Ozj3OX+7kkBchKtIrQyyxXL5sXfY+Vz2/TLns0G4I3uigFrItI2GjvNM3QclASl7s7i5+Mo",
+    "7xoENxOJI3QwgQ0E5xXmnueA2jXJOc414DDu+wT9JYc2ZTi3LmEZmASJ7pDn+uxU+QAIHhIlKEslRvbq3+TnjuYG1FXIQda86O/2",
+    "eBBRLO83cTeyJSkQPfx37ODqWPBC/xwLiBcqK+YUr+mZ5P7rzuK6zR3Lu9xe6/f7PBmcL9I2JzKpHZQKDPiU7zbyDvlxBhoNwR3j",
+    "JNz8VN+N5TzqYdtVy7bTFeY48xIIsyObMeM1GipxFOgBnfID8mr1mf6gCUMSLiWNF17rauG/6srludIszMjbv+oa+AsSaCmFMlgz",
+    "uSEvDgb9JfOz9J34zASqDCcY1SSMBe3heOSH6pHf98270EviUu/mAFMcziuRMUktrBkXCM/3bvXl+dP/iQnLD0QhUB2j8JfdPOc1",
+    "5i7Wz8ug10voEfVtDCAlqS5DMkEl+BG+AZ31R/fD+60Fog3ZFTMlqgzY4qbg6+i73wzPHs8q3+bre/pLFxcrXDCtLgEdXwxC/Mf1",
+    "Lfs7AQkLFhAPHb8fJ/dB3BPlPOco2GDMLdVj5Z/w8QRzIbotITEAKMsVDAeP+BH42f1fBiQNbBHRIVYSVeWX3XLp7OOG0vnOFN1b",
+    "6Un1UBGlKb0vWy8GIGoQcwHV9Tj2S/xBCOQN2xOqIz0LxeLG49vqquC+z/rPRt/o6U74yBaUKuYuhSyMHD4P9/629gD8RwMGDLoN",
+    "IRrwHWr1vtsn5rLoWdlvzfzWxOeS8eIDTCDULNAvpCVjFBIIBPl19mz8NgefDuYR/iCQENDmnODo6cbjZtOwz/rdaey99zcQaCa0",
+    "LEgsShyfDh4BpPaR+bwAoQxAEMgZvh5R+vfeEOap6IHbRdCH1ifmZfLYA5QeuCm0LPsk7BIjB+X5Afdk+kcDBQ6IFL4hJxJ96svj",
+    "9OvL41rUf9GT3ajqK/eAD+0kxikyKswbMw4EAmr40/nw/WgJ7A8sG9cfzvwv4gLpoelz21DRQ9dh5BXv+QD8HCIpmitnJSoUaAmb",
+    "/MP4z/ppAcwK0xEKIHURiOtj5TnuzeTY1LvTcN8g6qL1AA5fI+gnmihmHHsPuQR4+9b7Ef5XB6oMjRexHKn8UeNr6nzs09y30WXY",
+    "Y+Vg763/7hlaJjApByTjFYkMTABI/d79FAOZCk4QmBtcCpXnLeTS7TTl39Vq1fLhq+xD93AOiSMqKFwnaBq0D2gGV/7b/goAigea",
+    "C0oWbhW78y3hf+uB7GfcjdT93DHplPIYAxobHCUaJ64gpxNiC00BS/9x/4YEwwpcEOsaAwcY5frjU+0D5MrU9tXF4kXtj/jsD5cj",
+    "sCfwJsEalhEtB0v/aABGAvMI7wsOF+ERf+5G3/rpN+pR2gHUsN486vvyqAU/Ht0mKCd5Hy8UwAv+AJsADAFRBtEKehH6GED+U+Gk",
+    "5V3tJOE01CDZsuVC7jf73BSwJD4mJyONF/4PgwXKAAYDEgV4CmwOqBlyDLfoOuB56vHmhNfB1IDg8+pM9CgKsyCRJcck3huTEvkJ",
+    "WwFoA+gEcwpzDVgW2Bfy9eTejuaC6mzcKNL92fnlhO5v/ncYkSWlJk0h2RUsD7QENAMXBSoIxgzpEE0bJwZW457hWuu444TUXNWn",
+    "4SnqoPTZDL4h6iUJJbcaBhLqCIcCvwUMBz4Muw5YGbET7u3L3SboC+m72YHSztwY6BXvqQBxGugkfiU3H4UVdQ7UA48EgAZlCjMO",
+    "oxNzG9H+S99b4xPrUeDQ0lHXkOTv6372xg9YIrAkZiKYGIoSpAhEBNUHAQkRDVwQLhwMDdjlMt436jHm/9Wx09ffwulu8tQGXRwP",
+    "I/UjBBz3E28NzwP2BGYFcwpGDnIVoxwh/Kze5uVI7GzfptIa2JDkQutt998QeR8uIk0hyhe1E+IJ0gXECCcJ2g1iEWsc4Qsk5Dfe",
+    "Suo95dHVrtRh4fzqSfJRBmscviF+IoQaShOsDXkFlwaABtMLfg4jGKgZsfMB3V7ot+tI3UfUSN306KDuYftWEiYdXR8EHEUTjRHS",
+    "COUFpQYDCmoQehHwHbsOceUc3xjrE+Ul1qrUyuKP7NLw8QS2GfAd1x+AGHoUrw8lBacHWgmaDngQYxdzG6r3j9sq5c3qpNwm0Rna",
+    "uelu7yX57RClHQog1xyuFIYTMgorBiAIDwzDEI4S5h3lCxnjAd0E6gjkdtQw1BvkEvBf9E8FYRm+HoIfnhY6EgkOgQRxBkMJMhCv",
+    "EnQZIBwW+BHb/+Oh6W/bcNCR2SHrGvK2+UAQtx2lIFodRhScErsIVwSPB5MM5BApEzserwwN5Kjco+ph5EbTfNK74u3va/acBjIZ",
+    "wh7zH+gYahMXDtUELgVJB7oNdBAxGGEcVPmy3O7kEuro2xPR89lr6sHxqvo7EH4c3h7zHFEV8RIWCnwHWQuFDBMO4RGCHIEHN+GQ",
+    "3tLqmeHY0Y/Vi+dP8zv4qwdhGSweWx7IFvsQmgtiBfgIBAsCDxcRDBuKFXvuHt1b6Tbp0tYu0Azese3A8+f9pxO8HY8emxqLExMR",
+    "WQjiCRENFw5vEEIXxBnB99/b9OKo6ozcydDE2b3psfPO/NAPUB1PH/cc0RMDEB0JUQYkCtEK6A06EhMdpAj146/gf+uG5B3U39Vj",
+    "5UHwqPZMBv8YaR7mHTcW5BBMDMEGsgsnDHoOWRF3G3gQa+pz3groW+aM1k/TYeEQ7132vwLVFT8euR5SGBwRAA5tBsEJ4QuODHIP",
+    "hxlZF8bxsN5T53/oPtqH08nfBO3l8x/+6RAXHOsd9xlGER4PBgloCVoM/QtRD64X9xkz+a3fm+W96erc8dLz3JvrYvMR+4UMsxrp",
+    "HI0aphKJDxwLeApTDVkLRQ0NFi4cBf+Z4Rzlseqe3trSatv66ZLxVPk1CRAYUxzhGi0Tcg+FDFQLlg4ZDHsMWRFsGrII8eYx4ybr",
+    "n+Lm1C3Y/OeE8X72ewN/FJAZ8RiIFFYPEQ2ADJgSmxHJDl4U/h01BifjYeGY6X3hKNLc1ibooPH2+FoGWxXeG2gaPBOtDmILnAnJ",
+    "Dh8NZAysECgeLxFN6argEOwN59HVgdVD5l/xmfVeACYRmBjxGFwTjw0yDXIJxQ7DEPMOIRHJHE0YkfDa3gvpCuhd1mjRuuFz71X0",
+    "of3nD14afxpmFgIPfQ1DCdQMKRDMDdMOixk3HLL27d5V6Cvr+dpH0eTeB+/U9Iv71wtbGGsZThY4Dm0Mswl1CzIQYg6cD64XUSD4",
+    "/+Xf+eVE7DLeYtAW2+js3PPJ+ZwJXhcIGaMWIg9RDMYJDwmADz0OVg/hFJsgBAsT5Q3kqO3Y4jHS6taE6HzyBve4A64UnRgYF80Q",
+    "iAsXC2gJQBC+EEUQ4RQxIZkQtee94OvrwOUJ02vTzuVR8U/21QHtE8Ea1RhNEoMLpwpcB9ENWw/WDYUScSChGI3ul+BX7OPpXdZM",
+    "0Rjibu9o9DD9aQ89Gm8ZrBOFDMQL9gcMDSoRIQ4XEY8eVx4a9eTe0Onk6gfYEM993vftkvSk/FMNzRlQGhYW7AwzC5EIegsFEbAN",
+    "pA6uGvshJ/093+nnIu7s3SzPjtrr60/zg/ngCMUXlRkIFrANmgsWCvsKNRJtD6QOxRftJPUGSODD5LfuDeGWzqLVvOil8cv3cQa/",
+    "Fj8boRjCDw8MTwtGCFQO2g0WDa0RPCKFFabp6eE77x7pf9SN0T/jlO9D9Eb/bBEuGegYhRKRC8YM4AhQDoYQjA40ETQgsRwf8jrg",
+    "1uqs6g/X9M5z3hLta/N6/NYN0hlpG+wVSQ3sDFoJ+gyUELUNNQ/lHCUfyfaI3/Hptu1A2xrPftwM7Bzznvs1DKYYVRrnFW8NCwwi",
+    "CasKbQ/wDCQNUxlXJCACBeJ/6JjvUeCrz5TYI+mV8FH3cwdmFrYZXhfvDvAM7QqiCukQAA7GDCMVaiSdCqPk2OX776fk6dBo1Kbm",
+    "n/Cd9ckClRO2GZgYNxChDEgMzwk4EeIP+gxNEgYj2BET6Gnj/+896ILTI9LQ40TvFPTF/xMRmhkWGc4RaAwDDfMIPg+iEAgNThDG",
+    "IOgYGu+k4gfvxesK17bQFOBd7bny5PtTDf0Xkxh9E4kMbw04C3cPQxJBDnsPdx6vG77yN+Ho7EXtINnaz6LeRe3j8ij7vgrbFhYZ",
+    "UBTZDLgMMwuAD28TFw4TDqkd+R0V9UPg4evP7q/ars5W3X7tqPP++jsKcRd9GRMUFg0GDNQJ+gwCEjMO7wuPGEoi9f1J4ffqIvFe",
+    "35jP4tq57KvygPfqBa4UWxgZFU4NoQwXC3ULuBJTEOIM6hQiI3sGiuPg5ybxsuJzz63W+ulN8uD2iQOAEjoY8haTD7gM8ws7CuER",
+    "ExEyDd4SBCIEC5vlN+dq8pvlD9H01EvopfFg9T8BOBHOFzcWtA9kDHsM7ggWEO8RKg5sEUkhxhK56fLkCfP66d/SfNJn5XTwWPNR",
+    "/VkOLxdFFjgRCA2UDXIJ5Q7UEicP3A7YHXIYvO7Y4gzyqe5o1x3RRuKK76Ly3voJC1YVNxY/EjINng31CbUNUxN7D0EOYRy0G9zz",
+    "PeJi8Dnxbdpm0HvgRO9S8lf4qwdsFE4WzhEkDZYOKguqDAgTDRDIDfwZYB7R+Kfhxe5+8x/e8c/U3djupvKM9tUEGxNFFo4STg04",
+    "DuELLwv1En8R2g0OF0EfZv5n4mXsUfT34TTRq9sN7VfyEvbuAgARbhXZEqwNng1IDCIM/BM6EiUOrBZfILwAMuHQ6Vr0r+MB0Qva",
+    "hez882T3WAJ4EIoVGxMXDgMN0wucCbcRWxJADfUSxyGECVHj4+aL9WnprdNo157q6PID9br+1g00FMYSug3PDH4Opwr9ETgUfg7m",
+    "EaIhAg/c5RTjBPPI6tLT5tQ06ErzIPZm/k4NrxUTFH4OswwXDgEJOA5KE18PFw5/HTYY1+3s4O7wwu8E2fvSseRX8gz11PpkCR8T",
+    "ERMUD2sLww2ICx8QRRY4ESQQih5aGinwn98w7kzu2dcS0MPh4PDt9bv8+QkjFZwVABHsDH0NxgmUCncSSRBaDOYXQiDW+3fggexP",
+    "89ngf9GF3dju/PO6+AQFHBEKFC8RDwx9DdML7QoOFE4TWQ7hFNgg2gR346Do6/Gt4tLQXNiC6t/yr/fiA1kRIBbyE/0ODg6zDLsL",
+    "ixN3Ev4MixO0Hj8EfONc593xv+QJ0yrZTOuX9Cr5hAMbELQVQBO6DRkMWQugCRQSahOBDf0R2x8yCrfl3ua18lznR9TZ16HpBPOf",
+    "9gcBgw5QFNkStw7LDI8NewzyE5sUPgx1EaIeAwex5NDmx/L35wbUudiE60n1SPplAbIL9xNWEosN1wtdC+cJSxFnFH4OHxBEHogO",
+    "6+ig5R/yfepr1njVRef88yj4/f91CykTphJ1DhkMJA0yDZATThapDlQRXRyACRLnY+W28ADo5tQU1+jpgfUP+nACJA3tEwsSDA3o",
+    "CkELeA1xFGQV6A3cFN4bjwGC5Nbn3fHA5TnUZNre7Hb3bPz7BI4PyhQNED0L2gqOCXIJvhBLFH0NGRLpHAoGPeVk5g7zbOj71TXa",
+    "7u1++e37mgIADpYU8A9RCf0IYAoOC5sRfxSkDlsV6Rx+AsrlGOht8SblZtPS2SDt6Pj6/YoEGQ9hFvgRRgsfCqAJbwphEJgSog0m",
+    "FOsaPwHA5VDohPG85aLVb9tV7sn5ff4NBT4PchWGEEkKpQmACQwKew+WEYENhRXhGlT/+uYb6jnx1uQV1aTcT/Dv+Zz9sATiDxIW",
+    "MhAyCjMLbwriCdQPYRCcDJsUtxd1/Hzm4OpH8dXjo9bA31zyg/wF//QD2g2NFFsPBgmgCaQLFg3YEcMQ7Q3QGGMUMvXT5W7sie7R",
+    "3nPVBeJU81b9YgJSB7oQfBVDDygKcwpOCkYL+g9IDy8L7BU/Ff70guSa7RTxk+AO1jrj+/UN/qUA8wV7D9wUmg4nCZkKbwrMCp4Q",
+    "KRBtDPwWVhU29YbkqO3u8C/fjdQT4nb04fw0AN0GNBEWFjcQRArOCxkMPQtJEO8OJQtWFVwTMPSs5IftlfBf4L7VfOMo9Uv85v9V",
+    "BlwQVhXeD6IKpAs6DO0NEBKkDmQMCxgpEIHvU+Q2793u6Nui1QvmTPdp/X8AMQdREqYVBg9+C4kMZQrRCqwQ+A6BCqYV3hKJ8f/j",
+    "tO8R8lDfmNVC5Sf3HPxm/mYFVxBZFKcNLQooDUgMUQyTEl4RAw1FFkgSw/JT5Kjtge943hXVcuNg9ez6Df4rBq0R6hRsDoMLZw6p",
+    "DhQP5BOiELANdBaoC0XtU+QB7hftE9z81gDoz/fT/DkAQAfeEp8UGg1qCtkM+gw9DvESuA8XDs4XQArd66TlIPCx7W/b/tcH6Vb3",
+    "c/tn/2cInhPNE44MIQtvDSQNLA+xExkP5A1nF+MHwum85Yzw1ezL2jjZbOsX+Z/8Z/8lCIsTUxN1C7MJvQxFDSkQYxRRDzIQJxi0",
+    "BKToG+et8GHqCdmH2T3rsPhp/ZsAQwmNFAUUIgzWCn0NfQ2+EH8UkQ4iD5AWlAHY5e/l0vAp6vvYNtvu7Qj7tf75AGoKCxVTE/sK",
+    "hAmBDZ8OnxF4Ew4OgBLQFR/7A+RO50bwIOdH14Dd7vB7/fQAJQLECxsWwBGcCQgK5wzsDAURixOtDgISaRUI+47jh+f/7xXmQ9eJ",
+    "3fPwkP6KAUYCpAuTFeoRpQlDCcwNWw+hEuwSBg8SFhwUH/VC4t3oPu614YbVAN/58W/+8wIqBXUOHBciElcKeAplDV4OkxJGEfUM",
+    "YBXvEYby8uFd6iPv+uDt1Vzhe/SD/w8D4wQODkUWzRBoCQwKmQ3qDpUTphIzDqwWfRBw8MPhv+pM7sjeY9Rv4cH0zv8UA34F1A/3",
+    "FgARhgpBC1AO9Q+eE3UR7w42GIkMWuuL4Qzs4+xU3FzV7OMX9rcAhgRcB80QkBbwD4EKjAuJDNwOIRQAEUYOphhkDMTq++F+7ezs",
+    "uNot1SrlsvYwAKoDEgi3EfoVUQ9gCiIMeA01D14U9xC7DqsYlwks6UPj4O3d6yLaCdYN56D37/8mA1IHlhFbFZYOUgqcDFQOyBDZ",
+    "FZsRvhAIGXAFNeYx43bunelf17bWYOnJ+Z0BWgO+B/USPxXRDS8L5wxIDLIOpBRZEXsPRBhcBxPoJOSP7wHrsNi21pvoJfnT/+MB",
+    "oAZ6EZsUag1XCr4Nlg77EN4V3BGtER4YmAQh6HXlce5V6GPXFNf56GL5pP8CAS0HihKWFPcNZwt6DokPbRJ9Fu8RWBNpFVb99OU8",
+    "53HuwOWR1s/afOyq+v4ABAK7CGoTwhKhDFkL8g3oDQ4RkBYeEpwSBRRU/Drm7ufF7pvlBtd63DbvdfwPADEB0QdnEbUQFwtJCkMP",
+    "4xKhFZ4WnxSkGv0Oou9K5B3rK+s93GjU4uBS8g3+4gOaBXgNRhRRD7YL/QvsDD0OuhNgFX8RZhZUDoLwNeNC6/bsxd9V1xPiD/Sf",
+    "/zkDEQR6C0oTXg4LCYEK8g1vEL0VDRbRE+4ZLAzp7b/kqeu26i3b5tSy4vzz1v5YAtoE5Q6yFI4PCQviDGEQNRKcFTQU/BNgGJcD",
+    "0ufm5b7syOdB2R/Y1ucn900BYASqBsMQ3xNTDWUKBgzUDGQPhRVQFP8SwBffBBXpnOb37eHojNmc1zToq/igAIEBcwRFEBgUewxo",
+    "CUUNUBGnExgXoRUVGDQXb/ue5B3oLOzI4dTU0tlC63X5uwIXBdwI4xL8ExMOWQtJDbQPMhNFFhET5xVvE5b22OK86NXsrOFd1jLe",
+    "mO/l/HEDAgQrCeMS4RFiC4AJRQ2GEAAUrBbtE2QYDhE78jXjuuoM7Nndm9QG4Obx2f2dBEQEAwqCE4gRjgy1ChYNJBC3FLUWNxPv",
+    "F+UOO+9Z4mzrGuzz3JvUkOEP9J//MQQHBC0KThPtEIMLpwo3DacQ/xXNFl4UGBoWDXfsAuN37Nbqydkl07Dhu/MBAGsFFwVoDLcU",
+    "BRHUDD4MpQx+Du8UXBYLEpYXQA3x7LviF+3s7GXbu9P94vv1hADuAgoDpAsAFIUP7QrvC8wNrw95FhUYtRPZGLgMuew/48LsWusc",
+    "2bnSu+IM9c3+EgJxAxoNtxRqEJcMww2XD9YQ8hbhF/cTKxdwCKzqbeO57EXqgdiV04vkwPaf/2sCNgSaDpYU1w46DBMOzA3zDpAW",
+    "Yxf6ElUX/glx6+Pje+6868PYsdMh5c72H/5/ACIDpw0hFCIPZAyMDpoOoQ9/F8cYZhO1Ft0Jf+tW4+js2+rf2IfTPOQl9kX+4gD0",
+    "A/sNmxR7D3IMJw+qD0AQdRcnGBMUhBftB/rpgOOM7f/pTNdw04PlJ/cN/jkADAQiD1AUyQ7BDI4PhQ/6D90Xyhf/EhgXWQjC6a/j",
+    "qe6j6s/X+NNS5m33cv3c/90Dlg5YE9YNeww1DxAPNxBWGD8YuhPFF4wIG+rs46XugupH183TGeaO9x79mf45AzoPtROsDYUM9Q/i",
+    "D80QBBlSGBwUxBbrBmHqb+QB7oXp0tbq0+Pmjvdt/QD/aAMnD8ISpw3sDCIPeBChEuQZchjvFJkWKAS56XLmqO3Z5iXWNtUW5473",
+    "9f1e/5IDTA/LEuwMzwxkD4MRnxQYGv0Xyhe9FeX84Of96LHtAuOx067XJOq1+C//vADOBfcQ4RGcDMsMIg8hEUMVbBpVF6kXTRLP",
+    "9y7nyOrM7N7guNSv2ojrg/miAfYBuwXREEsR5wycDJcPAxPbFm8ZYxdVGmENue9N5k3si+p63AfVdd/r7kX7zwMVBKQIXhEfEBoN",
+    "zwwCD84R0hY6GGQVUhj1CUfuU+dB7YrptduH1nHi7vB+/AwEygNWCW8Q0w5MDOcMOxDkE94YaRi/FicYDATz6lbpF+3O5bXYQ9dh",
+    "5G7yG/7UA+YDgwsGElsPuAyGDQIS7BWeGXEX3Re5FRP8a+c86vHsL+JP1tzZf+j79TsB0QS5BPoMFxFiDkUNCQ49EZwV8xk0F/kX",
+    "PxJa9+zm2+qp68nfDtZU3DTr1vg+AwQF4AVBDt8QAA5WDOQNbRKZFg0Z9xYSGT0OKPJr52DsSOkz3E/W99727Ez6HAXXBSgHHg/p",
+    "EAAOFAz1D/0U6xceGEgYnhkcBXHrpOgN7c3ke9dM1zfkifGJ/VUGygZcCoAPtA/ADrgMzg7tE6sY3Rc/GCkWrP7H6YvqEu2N4hnX",
+    "HdoQ5qvyhAAJCLgG9Ql7D1cQ1g0tDeoRzRboGIsWIRoLEjv1dOfv633q4t2j1uzd2uny9RoEqAjMB3YMXw/UD6cNBQ6ZE8cYmBh5",
+    "FnYaywna7KvmgezH5kHZFdg643HuA/sxB3YJJAphDbIOtA+LDaoMgxGrGDEYPxUxGEcGyuuQ5zPtcubE2VTZZuQb8Cz9QAc2B7sI",
+    "Gg2pDpoOOw0sDxAVzxrrF2AYjxjT/+bocukV7Cnh39VM2pzmxPC6/iUIkQhZC1kOuA+vD14OCBApFuYatRZbGCoUJPhk5ivrrusD",
+    "3qbV4t1r6l/0PwEuCBkJuAwcDhAPVg8FDqQObhX9GlwWxRdZEdr1COf+6+7q/dw81kvfyuuD9n4CUge5B9QMWQ5sDogONQ/TEVsY",
+    "/RoOF+AZHQxJ7//mF+105wDZ0tbh4onuvviJAxoHXwlXDacNDg6RDvgO/RE0GmAbbhjEGQEGyuuS6MTtv+Q41hXYwOWR8Kf7HAVa",
+    "BggK6A2iDd8NQQ7IDYsQXhpWGwAXrxgiBq7r2Oj37ZblideS12Plm/Fs/MYDYASSCYMO5wzsDAIPixBxFG4bsxp6GqYY8v7Y6Ezr",
+    "h+2b33TTZNq86Nryxv2rBCIGpAs4DkkNHA4ZD34OMhMlHHEauRimFb39d+nh62LtcuA71U7bhela9En+7gKPBHoLog0wDFMNVg87",
+    "EFsVCh1gGygbKhSa+cLpa+1x663cxNOI3FPq9fQy/owCdQWzDH4OEQ1GDhYQiBGbF5IdFRvoG5cP+POT6RPuFemH2aDUUN9a65H2",
+    "vABoA0wGhg1+Di0NLw4yEBQSgBiQHEgbUxy9CVLvyOoe77TmNdeD1sriWO19+MwB5gP7B6INog3DDVkOuA9pEp4Zdxu2GXoa4AWo",
+    "7bfrB+/p5IDXotiZ5Pnuhfp5AuUC3wfIDXgNrwwqDmYQYxR3G2UbtxqmGDYBYOyH7aDusOE21bvZOub776f7TwJ7A0MJJQ6sDXMN",
+    "Xw/cEUAW4xubGsIbdxU1+uTqUu837ezde9So3D3om/FF/qADlASZCr4NlA1lDbsOCREKF9IcfxqvG0MSIvfk6tDvI+yW3C3VO96d",
+    "6fbyTv5iAs8DjwrtDSUOZw4bEHQTyBk0HbMaqBx4DXvxfeoz8BnpfNi+1YLh5uv59Kn/JgO/BWsLhg3XDgsPIg8FEQEaEB76GBMa",
+    "7wuq8WjrefBy6eXZQ9dQ4sfsBPZO/tgARAQAC18MoQykDtEQNRWVHFIeoxxwHJkHAu/j7ATwKuXK1AnW0+Ip7fj2Qv/lAlcHbQxv",
+    "DfMOUxDsD1AURx1jHSwbaxmxAintle3f73zjEdUE2ZvlNu8z+aUA1wJSBxQMWgywDRAPSRAQFTkd7hzVG+YX/f+H7cXuj+8h4gzV",
+    "n9m05nnwsvl//+MB2gd2DJcM9w0tEFARORcJH5UcIBw6FVz7c+wt757tBd921J3b6edV8RP8aQE8AuoIKA0fDbANKRB9EykZrh1Y",
+    "HFceew+j8+vrVfGV6irZMdXw4BjrefPN/nsDWAUMChkMXA0XDs4OVxCPGK4dzRmWGk4NTPQz7WjxtupJ2xTXV+EV7NH1pP8oAUID",
+    "zwncC6gLuAxFEMAU2BrJHNAbghyHCHHxDO+E8Xfm+NaA1/3iUuzH9XH/jwFBBckLKA1FDakOOhLEFtIc/xumG6EYt/+e7dXv/+/W",
+    "4cfVO9tv5x7vpPlYAuACJwb2CuIMTg3IDZkQWReXHXYaLBuFFd/7qO3l8HvuZ9+x1sHdXujN8IP8eQIuAkAH0wveDO8LRg50E6gZ",
+    "vB2xGSgbbBFy9//stvC36+3bedbq357q7fLR/g8DIgPuCHYM3gyfC8kOIxUsGw8dVRqPGyULvvLK7oTxr+Ya2MrXP+Oz65f05gDr",
+    "A/sEywl7DE4NewxMDxIWCh0FHboZhRiMBU/wce6d7yzjiddk2n/lce7R+BgD5gN+BbUK1AzTC+oLDRDyFn8dLBt0GYIWrgBJ79/v",
+    "pe7U4EPXZ9ys5wTwaPruAmgD/gZiC1oMfgs7Da8SaRhoHXoaFhnGEl78Le848JvrNd0P19Hetuq+8n786QJ2A8cHZwuyC4gLLA+K",
+    "Ff0aRB4VG8cVQQsi+k/w4O3h5TvbWdlX4SjsovXK/xgDcAK+B4MLoAmdCpYXVyFaHcIbOyFgFaf4rO2S8bPrdtdj0b7eAesz8/r6",
+    "1QQaCmAKewmUCp8LIQ7xFQQcnhxlG6gZmQcV8sXu5fBm5/jW6Njm5ejvkvcPACgHIAiJBswHagogCGcLPRegIMEdrhoEGeUF+/L7",
+    "7xfwheOb1IbY1uQb8Gz5KwBbBMcHxAjnCcMKNQk3EEEcMyJeHegbThaU/vTuEvAC7x/ejdFf2lXocPPW+zYBowUPCYAJ+QkaCv0I",
+    "ahAmHYwiNB0XHGQSe/qw743xT+3W2xXSNts06Lj0b/4eAWUEhAlUC9ML6wnBCWETNx/jIYEbIxvzDjj2mu0r8QzspNlz0o7dluuG",
+    "+NP/SQHtBJQK+AsEC60IoAlFEzcfKCHBGiEaZAxc9VXul/Ev677YftN637HtQflm/ln/8QRdC/gLcwr7B0wMjRf+IIQgRRz3GXUF",
+    "R/Ep8B/ybuYR1RHVHOLt71f75v92ALEF1wv+DMQLRgjWClwWeCHSHyEaORdzBLzxmO/G8ZDnxNYg1lTiAfFU/KL+b/5YBc4L4Qu4",
+    "CdoHZA/sG2siVB8wHbQVA/6r76XxLvA14PvSBNkH5ozz0P1Q//AACQgRDfAMlAqPB8kLCBmAI6Ye8RgnEqX9yfAV8snwyuKH1rPa",
+    "heY+9Pv+Mv6c/eUFNQz9C2IIwQbhDukcuSRUHx4bexLX/Mnw5vHw7hzfh9O22RLnEfWv/YP8uv5nCMwN8AyOCTkJIhKPHgMkRh9u",
+    "G8gNVvdK8OPymOwI2zTUid1b6UH2uv5h/loApwfnDEUNlwkzCFMQsB6nJPkdixkaDWX4AfGG8oXsg9y+1Xfd6OnG99D9lPvt/vMI",
+    "og1PC3wHKArVFTEhMCP7Hm4bWglD9LHwF/O56fXX4tSp31vsM/kb/u/8tAHwCYYNNQyoCK8J/BNlIcojNh7ZGPwFlfN28Z3y3ehu",
+    "2B3Xy+Dj7Kr69/7J/AIBnAlTDZELCQgfChUVDSLYI90d7xddBc7zdvHi8QDoeNg119Dgze31+qr9F/y5AdoK9w1LCwQIRgtsF+oi",
+    "0iJXHjkXfgLR8i3yUfEA5UrWe9cY4gzvkPuF/fj8iQOoC7oNcAtrCFoMDRkaJF8jfB5ZFFf+z/GU8nTwPeI71SDZpuO78Lv8r/1p",
+    "/VIEJwxUDrYLVAhfDLYZgSRUIl4dMRK7/PDxfPIg8CbiINbS2RvkKPKl/UP9n/xJBDoMiw2ZCkYIXg4NHDMl8SGNHUkQhfrd8fHy",
+    "ae/F33jV/trO5cTzEP2D/NT9OAU+DAMNbwqoCCwPHR0PJsQixByODC342vKM8zftd9081prcMuew9Sn+9PwI/koFaAzIDTIKQAfU",
+    "DPccBydGImkbkwzv+Q7zzPL87TPfJdZv2y7njPbL/ef6VPxUBR8NpQzuCHsJxRH/HsAlwSNCHYQJAfex8yrzrOpy2trV79z350f3",
+    "wv0J/BP/+QbeDAwNCAqLCjcT3SDuJZ8irBlXBET1wPO48STnRtk22GzfJOpn+Yj/l/2p/wkIUA4DDTkJZQr4FNoh9SMGIPUVwQA1",
+    "9BLzs/Gr5iDZmtkD4aztyPvp/l/9BwH9CFcNWQuaCHoLLhbOIjYkGCBCFDv++PP481HxG+Sq19zZf+IC77X7Rf5p/XwBDwnRDSwM",
+    "3AgwDGkYoiRuJEofOhLO/JXzlfMX8CHixNao2fTizfAL/S3+Bv3jASgKQQ6yC84IUw1eGgklkiPoHp4QKPtK837zMe+94F3W79nV",
+    "41Lyd/1y/eX84ALWCswN7QqgCTIQaB2VJc8jsB7LDBr4F/N586HsqNx41cjbP+bG9A3+Lf73/jYEcAsvDp0KzghDD0wdhCYPI7kb",
+    "zwlM99LzGPR87JPdAdc93Ozmh/YO/zD9pf0CBO8LKA05CfgI0xGxHxwl0SHeGzAJD/d+85Hzz+sT3BfWJ9026bP3Uf2Z+8P+4AWf",
+    "C7sLcglDDBYWRCFLJTAjCBmCAo70WvRE8oPlX9dS2IDgGuyc+uH/QP5VAPAG/gzBDJoItQpOFnUiiiTXH2MUyv/G9KjzdPCj5OjY",
+    "h9ms4abvTf2R/878jQCHCJMMeArACP0OdhogIh0jFCDtEOz6yfM59GPun9+X14PcMuRt8Yb+VQAb/jwCrwniDAMKLQo3E2MdhyJd",
+    "ImYchwjE9l/0ufKK6bDb5NjA3wrop/UMAfkAlv+YBHUL1AzXCGIL9RVYHzwiMCCVFp0B5/RM9Pzw2+TA2W/bluLC7Mv6qAImAPj/",
+    "NQZ7DM4LgQeGDfwZeCG+IYUeHBFL/LHz1/Pr7q/gzNiJ3d/kOPDw/bECVP8xAQAIewzGCSsJFhP+HU8iKiJ+HB0JK/fS853yAunn",
+    "2vLYcuAo6Zn1HgEYA3EAoAPLCS0NpQmgCQUUNx+2Ikcg0hZYArD1UfRM8bzlK9p420LiOuzO+Q8DHgEY//EE6AqWC7IIUA5eGkQh",
+    "PCLlH5EROPyX9A/0xO0O3z7XmtyZ5Gbwk/3YA/EB8QH7B44MJQtkCZAQ8RudISgh9htzCh/4HfRK8wXrIt1Z2WzfE+hj9EIAFAOl",
+    "ACsDjAgXC+AIqwpIFfEeCSLUIIUYuAP99gD2EfKD5TPZz9qU4fzqDPgMASMBqQDcBfsKSwvzCK0OdhrwIJoirR+eEIv7jvTP9A/u",
+    "E9/Z14ndR+Xp8JP9pQM8AnQCuQfhCx8KOAhtDwcbVyFlIQ0cqwq6+MH0IvRI7E7ekdmD31DoWvQc/z8Brf9aA3AIFgo8CNwLmRba",
+    "HpUiySJyGB0DS/bD9QfynuRg2G3aGOIM7Cj42ACKAY0AmgUJC0ELmgiyDogaIyEiIxggPg9v+8P19fRT7TjfndiX3RzlD/GO/WIC",
+    "XgC+AWII/QucCc4I8RL+HRIidSI2Gx8HR/dS9VjzcunI2xzZRt/96NL2wQAlAtj/8AMXC1oMOAi4Cf8V2x/tIY8haxapAED1lPW5",
+    "8uHl4NmS2oLhGuxL+W4BzwAKANcF+AvlC3kImQ2zGmohnyKlIMIPpfrU9Db15u4U4HPYDtxD46PwV/4PA+r/PwH9CEANvgocCDIQ",
+    "1xzMISAiVR1DCTD3hPQw9GXsy93k2PDd4+Yf9SIA3gGf/+kCnAm7CzkJxgmpFKMfBiMGIxsZyQIE9sf16PKh5kjaBtr33jbpMviU",
+    "AXsAJv/EBXYMrwzuCMsMhxkVIc4iMyJ7EgD8s/Qf9d/v1uHf2MzbzeFH7pv8vwI+ACIApwcDDZoLzgjADnwbcyGfItoexAs9+fL1",
+    "LfXN7Zbfmtn93BHkqvEt/rcAV/6wATAJlwzrCUEL/RRmHysjFSQdGhgD8/aa9hzzBOeq2ivatd4F6KD3hQH0AJn+LQRRDCQNuwja",
+    "CqwWRyD7ITYhfBWk/1L1A/UH8sLmtdsz3Grhgewn+vj/hv4c/6IE0gi7CJwJAhI3HPEhNSb/IToMqPkW+Iz2/OoL3WTaBd/C4zPw",
+    "9f3+AK/9aACtCDsNGgowCboTmh97I18jNBo8BaX3x/W58qnopd3I23rfGOiH9kcAlv9p/SYDoAlvCpEIUA4YGokg8yI+I5UTX/15",
+    "9sD2SvB64ufabd3k4absz/r+AF7/Z//JBe0KpwpRCWYQQRztIb8iwh6XDDD69vWJ9KvsIuBh2yXfDuXS8GT9bAB0/qIBXAcaCicJ",
+    "jgwYFwQfWCLBI2YZUQPU99z2hPEK5Y/b09yJ4N3oTPepAFoA4f9KBXgK9gqECXAOXRmSIOIgYB5LEd799vVt9PTu7OMB3RPfTuRV",
+    "7jf7hADN/uYACgZ1CNoHXQtOFkke9iHKI88aYwZd+f73x/Kk5UHcCN7y4STnxPNU/38ArP5EBN8KdQutCNoNChq8IMki0h+QEGT9",
+    "EvbU9CLureI13WLfuOOu7iH8ggKlAJcAzwYRCowIqAiDEYob8R6bIDMczArv+e31kvQo7EjgVt104YvnvvLC/T8B0/95AoYHPgku",
+    "CPMLLxdJHnYgwyG/FgkCgPfq9qrxmeQl3PLeNePs6fP2SQHQAR0AOAUAC2oKSwgsD7MazR8VIfkdog3D+2v2O/Vm7WHhbd1f4ILk",
+    "Te8C/WsCVQDaAd8HKgukCOUIfRNMHWsfOSBsGpkHSfh49dfzN+rR3mTdKeET6Jz0UP9gAUcAIwRMCXMKhwjzCz0XVx6CH6kgURUd",
+    "AAD2fPWE8WflJ92f39DjR+st+IEBqwGpAEYF3QkRCn4I3A5VGjwf8CCYHo8NCPuR9ij1T+3Z4MHdReEv5drvdfx+Al4ATQHfB4ML",
+    "RAqtCJcPzBuaHy4fBBwyCgT5e/SD813tV+HB3ZDh1ucE80P9twCW/8wB/gZWCdcIlgtbFeYdcSA8Ii4Z1AOd+Pj2TfLZ5qHdPd8O",
+    "4pvoi/U9/xMAtf4+A1cKzgvgCPML/RcPIIkg+B8KFNP/PfZH9H7wAuYt3snfW+Mu7Qb6GAA4/7L/FwXPCQsJKggZD6wZnR7+IH8g",
+    "jg8T/O/2x/XP7nXiat5T4bXkMe+q+oj/Rv+t/3UFogoICq0ITA9gG+UfxiDMHjINFvsX9oT0Ae7N4RbeG+H55dTxvvvk/n//PwGM",
+    "Ba8JLQonCUgPDBvlH7ggMB2MC0X7h/bd9Izt1uFQ3xPijuZg8qf7uP3Q/e//6gWJCXYJCArFEQUdsyCdIYcc+Qlt+hL2K/RX7P7g",
+    "yN6i4XTnh/Nc+1/9yP7FAEcGfQqnCqAJJBDgHB8hcSCYG4sK/vqw9Xv0qO3b4YHe0eG15wTz5fk9/Mj+8ACRBZIJ7QqgCUgPXRyR",
+    "IoYhaRssDP38mvaE9CbupOI33mTgcubU8Rz57PpW/f4AJwalCYYKfQrwD/YbEiJYIh0duAzq/KT2B/XP7v3ieN6m4CPmYvBk96H6",
+    "wv2zAF0FdgnkCjIKtA8zHE8iqCKXHRYNbf1f9+L03e6F4/veEeGD5bnvfvZP+Sf9LAGJBpwJlApzCvsN5hqMInMhvB2JD7r+dve+",
+    "9aDxP+aL3m3geuX87Y701Pde/FUAxwQPCfIKRApWDK8YNSM1I50eihKHAi/5g/bR8kvoM98J303jAesx8vb1DPvq/xoE0ggSC4EK",
+    "MAySFzkjNiRCINgUgQST+kP3D/ST6WLfc97N4crolfBX9Tr6Yv/BA3kIEguiChILZBWjIgMkvx/AF6QI0fto9+31Eu0n4FHdrOG1",
+    "53HuPPNi+b/+ogE5BrUKnwtSCv0RRCF5JRUhIRqTDFT/0fia9knvWeJf3SrfA+TC7Jjy6/eF/fkAnwXiCbYL5Aq9D24eoiT+IB0d",
+    "txHtARP5nPcl8/LkbNzR3n/iW+lw8Mn2W/3c/zkDPgmqDA4L9Qz0GgAlUiHdHcgWNgca+/32bfQQ6TDd6tzL4Gbnz+759PL7JgDj",
+    "Af4GBgx+C4MLXBYPI6gidB9SG3sMEf47+NH1T+3F3+jbHN8p5JbrSfJn+Tv+GABYBWILwQwSC6YSMSGPJOghnR6tEf8BVPk99iXw",
+    "iOKr21rdU+Fx6CnwFvgh/J7+eATICssMvgowD1UdRCRDI/YhGBfuBVb6hPcw9I7myNsE3CLgzuVd7Yv13vpb/bABTAn3DRkMnwsm",
+    "F+4iHySRIuUcXA30/Bn35fYN7d/eUdoW3nLjIOqK8tr4iPx1/78FDwxADdEKNBHXHzUmpSMBIOoUhAOn+J/2avIF5Zza3drJ39Xm",
+    "Xu7f9Wr7+v3SApIJAw1tDCwPMxz4JUslNSO/GWII8vs594fzY+gL3evaFN0O4jnraPRW+ur8fAHSCPoMnAz1DCMYYCSKJK0iWx4G",
+    "D/797/af9vnuMOD92bLc+uA353nwM/k6/db+cwTACyEOewxfEvgfFCbKI1UgyxVEBL74VPYS827mGttt2k7eMuTe7OT1w/u0/RsC",
+    "6wmpDhwOew85GqskaiS0Iccb2grR+wH3sPWr7AzeEtkE3MvgLOmB8qj5FP2p/xoHFw4REO8OvxPdIIMlMyJGH+wSSQGl95H2ePL/",
+    "4y7ZGdpO3i/lwe679tb7y/0wA7sLmRClDxsQ1RsPJoYk8CAEGcAIs/rV9Tb16ep421/Xc9v74cjqCfPc+Un+hQHOCCQQjREsD7QV",
+    "4CKkJash0hwUD5n+Ivcz9vbvZOD510zaUN8k5yXwpfd7/UcA1wUvDnUR+A5UER4eOSbEIlIefBXoBBz56vbE89XmS9lc2FbdDeTH",
+    "7Ab0uvvv/8oDawuCEPUPFA9BGTMlRCQYILEZywlL/G33hvUa7A/d39hz28vgLurP8Ub5eP6wAaMI7w76D2IObRUTI4IldyEvHfAP",
+    "HQCe+JH2gu+e4ETZU9oi3snmKe/09tD9LAEKBlENyhCUDqUQ2B3RJR8i4h6oFugFcvlu9iD0Y+dk2grZAt0w47DrRvRa/HYAQQPQ",
+    "CeoPdhCeDnAXKiSVJLkfjhqEDV3+dfa59Njtm99d2FHaG+CT6Frwb/hQ/x4C3QYDDhMRRA+DElAfrCXJIYkdrBOrA+/4dfXj8UPl",
+    "XtoC2vvcV+T/7SP2Pf2oAI4E5AtLEL8PCA+jF0cjOCKUHT8aiAwC/I711PVE7uXeUtne3E7hxugB8gj7Vv+VAMYGbw5SEPENthFD",
+    "H6UkeR8FHQUVWwTH9wH17PIP5vbZT9qJ3gbl/e1J9p79XQCpA6wLbhBXD08OeBjgI64h5h1RGiAMFvy29Xr1ZO3e3SXZvtyR4STq",
+    "xPKd+kn/pQHPB+gOyBBoDdQQsR4SJKUeWxyTFLoDf/fq9SP0HeYv2qjao96U5UfuovaH/eL/zwMVDP4QfA+HDZQW8iJTIS0dThq0",
+    "DDH8n/UO9tPu3t6U2bPd6eFt6VXyc/oi/64AOAclD7sQow1ZEB0e0SNnHnQc2xQIBAL40vVG9MjmAtvI23Tfa+Xk7eT12Pzd/3wD",
+    "YwujECkPxwylFW4iFyGUHGAa1w0+/Q727fZB8H7ggdpI3nLiFel18Af57v4yAOYFYw45EQ4NTg7BHHIkPB7zGlAWJgcg+cn1yvX1",
+    "6RjcEdu836Xl9es689n7VgC0AoYJfxDlDxcMaBOmIWkiwBuTGdMQuAAP99/2nfJp4//Zpdws4XXnku/1953+wABrBVoN2BBlDSoN",
+    "fxnWIlQemhqLGFELTvte9lP37+343WHa+97i4mbpifKV+w4AUQHGB4EPDRB+DNoQ1x5UIpAbARrdFOwEj/hO96D1m+eq2szbGeDD",
+    "5PzsyvXD/Y0AXAMhC7kQAQ/7DNkVlCE+H/AZuRnnD/P+yfYZ+KrxEeHL2bndyOGL50Xwd/mI/+cAsAXlDfEQgg1WDiobFCKIHF8a",
+    "DxjwCW/63/YY98vrONxQ2mvfl+Nj6p/ztvwSAMkBBglcEH0QhQwIEu8etyBoG60ayROIAxX4Vff287jkBNo43EngvOVp7m73C/5W",
+    "AKkEigwnEd4Oaw11FtQgLB8MG2oZyw02/ZT29vaQ76Hf0dlP3lHi6OgE8nX6mP+3ASQHzQ6eEIENrg4gGvQhbh17GrMWpgec+Xn2",
+    "Cfa46mDcAtty3/Lj8usD9X38EQAxAxUKrg+TDw0NyhLcHi0h1hxgGsgQLwHD96P2HvLP49/a3NzH4E3n8e/B9/f9qAHMBkgNRhBs",
+    "Ds4NOxezIMse/BrQFioKLPzU9pT2tO0j30Tbrd4v4xnrePMN+9X/8AJPCYQPZRCFDaYPwRokINAb2BgPEwgFN/m39oL1tOnb3DPc",
+    "vuDJ5STt6fWI/f0AVgRbC9oQCxARDZES3B3THmsZsRfyD7QA1/aV9jjz6uQb22PdYeIP6L7v5vgEAF0CzQXMDS4SgQ6HDLYVrB/f",
+    "HEAYZRa+C1z8uPWF9rHvFeHj2preLeTH6qbyNvslAYADbwhHEGwSzQ2QDZQYMR9sGk4XWRNIBiz55PXL9R/shd6k25fgj+bp7bz1",
+    "ff0RApkEBguXEQcRuwzbD7kauh39GH0WYg8lAXn3TvZw8/bmy9wb3vriN+kO8Uj5KgDRArMGxQ2+EcAOqAtWEmQc+xpDFi4VCwwS",
+    "/Qb26Pa28ULjYtyZ4I/lBus18xT8EwLPAxcIxg+zEakMQQsMFaoclhiiFdITJQiN+gf2dvYc7ojgad1H4mLnge2T9V7+PwONBOwJ",
+    "IBHqECwLTAwpF6AblhbuFHkRGwQT+Bz27/V060/fH9+w5Hnple8P+JAAlwMDBZsL2hGAD4EJKw0zGM4ZihT8E6IPxgG+9n32b/Uy",
+    "6cnerOC85mrrffE6+tMBKwQtBqQMaRGWDacIWw6hGHgYPhPmEkQNRv+a9hX3GvTF50TfoeJb6AbtlfOD+2ECpgQIBzsNOxD3C4QI",
+    "CBAXGbIWVRIhEhQLav1Q9vb2ffJY5kLgZeSw6XLuF/Vi/YsDOQXKBxkOyg91CkMIQBFrGHsULRFHEesIbfse9kj3VvFn5ZHhiuZb",
+    "6wLwl/ZT/9QE9ASSB+ENEA9LCSgI0hHZFwYTVxBuEDwH1vnx9Wz3v/AX5TviBuhO7ZDxBvi1AEcFzgSnB0kO0w4SCGwHixH8FrwR",
+    "7w8eEDkGdPkP9pj3h/DL5G7ioOg07sbyLvl0AZwF5wTxB4QOMg6TByQIIhLZFb4Qdg+VDjcEkfii9hT3QO8p5VvkS+qe7yP0wPqM",
+    "AnwFBgVNCCQOdAzmBdkH6xGIFBwPBg+5DvwDevhT9z74ee8I5UnlMuxm8CP0HfvTAl8F7gPEBwIO2gtSBcQHDxJcFKAOjQ65DnoD",
+    "8fcb97X4F/Do5DbmTO0N8ZT0O/thA1wFlAOfB70NtAt1BJoG1BFUFNYNLw7GDp0Dsfdj93P5bvCu5dzmMu7O8cj0PPsOAz0FIAPE",
+    "BowNoQufA9IF2hG2FGgNGw3QDl4Eyfck9+P5iPHY5RfnPe+38vn0uPofA4wFxQLxBcsMXAtLA/YEaxG+FBMNYwzaDikF6ffi9lb6",
+    "R/LX5s/n1e+q80H1iPqzAqEF4QLPBIoLKQuIA8QEahApFPcM9wtHDg8FvPgG9/r5AvNB6KLoQfBN9O71p/orAnkFAgNfBKMKKQsL",
+    "BAQEMw99E+EMZQueDaYFUPlB9yv6u/Nk6TvpTvBL9DL21vreARsFGgMrBAQK9wphBNYDGA7REuYM5QpSDf0F0/kp9wv6vvRk6gnq",
+    "o/B69HP2qvphAcYE8gLFA24JoAqeBLEDyQ3iEtwMiQr6DDMGEvoO9x36I/U565vq0PDf9If2s/ojAbgE/wJAA/UIygreBEwD0Qx8",
+    "EtsMtAk8DJAGmvoV9yT6YvaY7NLq2/Ah9QX3k/rOANQEIAMUA2IIhQpuBcsCJAugEZcM9wiqCzsHjfsn92P6l/e/7R3rFvGo9Tb3",
+    "bfqEAGQEKAONAn8HhArNBYICFQr+ENsMdgjYCucHb/wt9y36Z/hC77PrTPFQ9nb39Pmf/wgEUAMeApMGOwp/BmsCZQg4EFMNQggD",
+    "CkkIIP6699f5Vfmz8CXs+vBQ9tj3sfnQ/qIDuQMuArcFvgkCB4AC9QYqD4kNBQgFCZsITf8Z+HD50vmO8iztH/Fo9hP4uvk0/iQD",
+    "2wM6AggF9QgmB7MC3QXhDWcNFwhMCFIIngAS+U/5g/pT9GTu5/Ap9mL4fvlx/ZoC6gN4AkYEXQiKB80ChQRhDFMNFgh1B4MI/QHL",
+    "+WX5Nvv+9WHv6vA/9oD4YfkR/QwC1gNkApEDmweqBzwDNwORCvcMCgipBqMInQP6+lH5ivv09+fw/fA19s34eflQ/GMByQM0AmMC",
+    "ZQbQB7kDKQKaCK4MowgLBlwITwXC/Dv5a/vC+cDy7vCc9SP5pfln+0kAswORArIBKgXCB7YEhAFIBhAMWwl2BYAHvQad/lX5F/td",
+    "+wv1RvEu9VP5D/oB++j+GQPZAh8BoAM0B5UFhgEeBKQKHgqaBYUGhQcGAUr6pvph/JD3OfJd9AL5XPp3+sL9XwIxA+8AGgJIBiMG",
+    "8wGCAgEJtAonBlIFxAdrA5b7Ivq7/BD6wfOX83n4rfpn+nP8MgGCA0wB7gD3BJwG9AJLAd0GsgreBlYEFwdrBZv95fl9/AL89vWw",
+    "86j32/rG+qr7v/8aA+wBKAAdA0sGIwTnAFwE2AkYCBEEAAbQBj0Agfrf+1/9ifhB9J/2jPoT+x77JP4+ApcCNgCJAXoFTAVoASAC",
+    "AwjtCIcEcAQPBwwD6Pv/+tX9dPvg9dv14vlv++P6xfwCAcYClgAOAOED9QWyAt8AmwU1CdkFZgMdBkUFUv6U+iL9h/1P+Jb1vvjD",
+    "+237vvtG/4UCfQFv//gBnQUcBKUABAMoCDoHVAORBE0GOQFh+x78pf43+0z2g/d0+yj8RfuJ/YYBKwKq/zsAdwRhBbcB+ADsBQ8I",
+    "OgTOAsAFHwRd/Sj7Tv70/ZH4svZ7+tD8r/sd/PH/VQKKAD//ggKMBTQDMAD4AksHvQVKAhsEwQWsAJr7Hv1k/8X7M/fc+K38k/yI",
+    "++L9kgGRASj/WgBtBKUEAAHMAFAFxwZdA4gCWwW7A7L9+Pvu/nL+TvnC92j7S/3X+z78BwAEAhgAOv96AgUFrwIKAKsCYAboBPQB",
+    "kQM3BdMAM/yM/a3/Yvw7+NH5VP39/K779f16ATkBHf9tAAcE+QO3AJwAjATGBboCAwKiBJEDRf6R/D7/CP+B+tb4F/zP/Sj8UvzS",
+    "/7UB//88/yQCWwRaAgIACgIxBSIEsAHxAqYESAH4/Nf9BACC/Y35dfqe/XD9/PvS/RsBHAEk/w8ASwOmA9gATQBiA8wEkQKJAbID",
+    "jwMw/wr9PP+9/w384vlZ/Dv+1PyH/Gb/agESABr/VgGDAzMCIABKAQIEpwOFASgC9QP2ARP+DP4JAJf+GfsP+7f99/2S/Kn9dQAB",
+    "AW7/w/86AgMDGwE5AEQCzgNoAkEBvgJXA0sA1/0Y//7/ev0z+4f8Rf55/dn84P7kAFQAXP+pAJkCNwKHALwArwINA4QBagH6Ak8C",
+    "P/8+/sP/fP/M/NT7qP1i/kH9mf3V/9oA0f+M/0kBbgJTAS4AOwHFAlACJwHLAd8CPgHA/uj+BADU/on8ofxJ/kP+bv1k/k0AjQCR",
+    "/wAAtAEGArsARgCHAYACogH2AAECaAJnALb+ev8PAFL+n/x3/bv+Hv6w/Rv/jgAzAHn/ZwDKAYQBWQBoALABGgIwAQcBGALjAd//",
+    "8f7T/8z/+v0F/R/+0f4d/in+n/+FAOr/mf+7AKsB/wAYAJwAxAG1Ad8ALAEQAk4Bg/8+/wgAef/O/YX9o/7T/jH+ov71/1wAvv/W",
+    "//AAXAGYACIA2ACdAUYBxABHAc8BxgBo/4n/CQAn/+T9Ff7w/tD+Yf4R/yMANQC3/wwA9wAQAV4AMgDqAGoB/ACzAFIBegFTAGz/",
+    "v//w//n+HP6G/h//1f6s/nL/OAAYAL//NwDtAMgAMgBFAO4AKQHBAK4AOAEnAREAff/a/9T/6P5g/uP+Rv/t/u3+tv8+AP//0f9T",
+    "AM8AkgAhAE4A3wD0AJYApAAWAdoA6/+R/+b/wP/0/qr+KP9a/w//NP/i/zMA9v/m/1kApgBmABwAVQDEAMAAdwCVAOoAlwDV/6r/",
+    "7/+2/xP/8/5e/3X/Of9s//b/JgDw/+7/VACJAE0AGwBSAKMAkABYAH8AvQBlAM7/vv/0/7j/OP8z/4n/j/9i/5b/AwAcAO7/+P9I",
+    "AGsANQATAEYAhABvAEYAbQCTAEAA0P/R//j/vv9d/2X/qP+m/4f/tf8HABMA7////0QAVQAiAA0APABmAE0AMQBUAGwAJwDZ/+P/",
+    "/v/K/4L/kP/D/7v/o//N/woADADx/wIANgA6ABEACgAzAEwANQAlAEQATgAUAOH/7//+/8//ov+2/9j/y/++/+P/DAAGAPT/BgAo",
+    "ACUACQAJACUAMQAfABoAMQAyAAgA7P/5//7/3f/E/9X/5//b/9b/8f8HAAAA9/8GABoAFAADAAcAGgAdABIAEgAgAB0AAgD0//3/",
+    "/f/p/9z/6P/x/+n/6P/5/wQAAAD7/wUADwAKAAIABQAPABAACQAKABIADgAAAPv////+//P/7v/1//j/9P/1//7/AgAAAP7/AgAG",
+    "AAQAAAACAAYABgAEAAQABwAFAAAA/v8AAP///P/6//3//v/8//3/AAAAAAAAAAAAAAEAAAAAAAAAAQABAAAAAAABAAAAAAAAAAAA",
+    "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="
+  ].join("");
+  var timerId = null, rafId = null, wakeLock = null;
+  var nextNoteTime = 0, beatIndex = 0, uiQueue = [];
+  var LOOKAHEAD = 25;        // 每 25ms 檢查一次
+  var SCHEDULE_AHEAD = 0.12; // 預先排 120ms 嘅拍子
+
+  /* ---------- DOM ---------- */
+  var $ = function(id){ return document.getElementById(id); };
+  var bpmNum = $('bpmNum'), bpmRange = $('bpmRange'), mark = $('mark');
+  var dotsBox = $('dots'), disc = $('disc'), playBtn = $('play');
+  var icoCat = $('ico-cat'), icoBird = $('ico-bird'), icoMix = $('ico-mix');
+  var statusEl = $('status');
+  function setStatus(s){ if(statusEl){ statusEl.textContent = '狀態：' + s; } }
+
+  /* ---------- 音效引擎 ---------- */
+  function ensureAudio(){
+    if(!ctx){
+      var AC = window.AudioContext || window.webkitAudioContext;
+      if(!AC){
+        if(window.__diag){ window.__diag('呢個瀏覽器唔支援 Web Audio，請用 Chrome 開啟。'); }
+        setStatus('瀏覽器唔支援 Web Audio');
+        return false;
+      }
+      ctx = new AC();
+      master = ctx.createGain();
+      master.gain.value = volume;
+      master.connect(ctx.destination);
+      sessionGain = ctx.createGain();
+      sessionGain.gain.value = 1;
+      sessionGain.connect(master);
+      // 1 秒白噪音，用嚟做氣聲
+      noiseBuffer = ctx.createBuffer(1, Math.floor(ctx.sampleRate), ctx.sampleRate);
+      var d = noiseBuffer.getChannelData(0);
+      for(var i=0;i<d.length;i++){ d[i] = Math.random()*2-1; }
+    }
+    if(ctx.state === 'suspended'){ ctx.resume(); }
+    loadCat();
+    setStatus('JavaScript 正常 ・ 貓聲錄音 ' + (catBuffer ? '已載入' : '載入失敗') +
+              ' ・ 音訊 ' + (ctx ? ctx.state : '不可用'));
+    return true;
+  }
+
+  /* 直接解析 PCM WAV：同步、唔經 decodeAudioData，保證一定播到真實錄音 */
+  function b64ToArrayBuffer(b64){
+    var bin = atob(b64), bytes = new Uint8Array(bin.length);
+    for(var i=0;i<bin.length;i++){ bytes[i] = bin.charCodeAt(i); }
+    return bytes.buffer;
+  }
+  function parseWav(ab){
+    var v = new DataView(ab);
+    if(v.byteLength < 44 || v.getUint32(0, true) !== 0x46464952) return null; // 'RIFF'
+    var pos = 12, chans = 0, rate = 0, bits = 0, off = -1, len = 0;
+    while(pos + 8 <= v.byteLength){
+      var id = v.getUint32(pos, true), n = v.getUint32(pos + 4, true);
+      if(id === 0x20746D66){ // 'fmt '
+        chans = v.getUint16(pos+10, true);
+        rate  = v.getUint32(pos+12, true);
+        bits  = v.getUint16(pos+22, true);
+      } else if(id === 0x61746164){ off = pos + 8; len = n; break; } // 'data'
+      pos += 8 + n + (n % 2);
+    }
+    if(off < 0 || chans !== 1 || bits !== 16 || !rate) return null;
+    var count = Math.min(Math.floor(len/2), Math.floor((v.byteLength - off)/2));
+    var buf = ctx.createBuffer(1, count, rate);
+    var d = buf.getChannelData(0);
+    for(var i=0;i<count;i++){ d[i] = v.getInt16(off + i*2, true) / 32768; }
+    return buf;
+  }
+  function loadCat(){
+    if(catBuffer) return;
+    try { catBuffer = parseWav(b64ToArrayBuffer(CAT_WAV_B64)); } catch(e){ catBuffer = null; }
+  }
+
+  /* 一拍一聲、唔移調；重拍只係大聲啲 */
+  function playCat(t, accent, interval, beat){
+    if(!catBuffer){ catMeow(t, accent, interval); return; }  // 萬一解析失敗先退回合成聲
+    var full = catBuffer.duration;
+    var max = Math.min(full, interval * 0.94);
+    var src = ctx.createBufferSource();
+    src.buffer = catBuffer;
+    var g = ctx.createGain(), lvl = accent ? 0.95 : 0.70;
+    g.gain.setValueAtTime(lvl, t);                     // 錄音本身已有淡入
+    if(max < full - 0.005){                            // 只喺快拍需要截尾時先淡出
+      g.gain.setValueAtTime(lvl, t + Math.max(0.02, max - 0.05));
+      g.gain.exponentialRampToValueAtTime(0.0001, t + max);
+    }
+    src.connect(g); g.connect(sessionGain);
+    src.start(t); src.stop(t + max + 0.002);
+  }
+
+  function newOut(level){
+    var g = ctx.createGain();
+    g.gain.value = level;
+    g.connect(sessionGain);
+    return g;
+  }
+
+  /* 貓叫：鋸齒波聲源 + 三組滑動共振峰，模擬「喵～」嘅口形變化 */
+  function catMeow(t, accent, interval){
+    var dur = Math.min(accent ? 0.42 : 0.33, interval * 0.92);
+    if(dur < 0.09){ dur = 0.09; }
+    var base = accent ? 430 : 355;
+    var out = newOut(accent ? 1.0 : 0.72);
+
+    var osc = ctx.createOscillator();
+    osc.type = 'sawtooth';
+    osc.frequency.setValueAtTime(base*0.90, t);
+    osc.frequency.linearRampToValueAtTime(base*1.20, t + dur*0.28);
+    osc.frequency.linearRampToValueAtTime(base*1.00, t + dur*0.58);
+    osc.frequency.linearRampToValueAtTime(base*0.70, t + dur);
+
+    var lfo = ctx.createOscillator(), lfoAmt = ctx.createGain();
+    lfo.frequency.value = 17;
+    lfoAmt.gain.value = base*0.018;
+    lfo.connect(lfoAmt); lfoAmt.connect(osc.frequency);
+
+    var env = ctx.createGain();
+    env.gain.setValueAtTime(0.0001, t);
+    env.gain.exponentialRampToValueAtTime(0.42, t + 0.022);
+    env.gain.setValueAtTime(0.38, t + dur*0.5);
+    env.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    osc.connect(env);
+
+    var formants = [
+      { a:620, b:860, c:480, q:5.5, g:1.00 },
+      { a:1150, b:1250, c:900, q:7.5, g:0.62 },
+      { a:2600, b:2500, c:2350, q:9.0, g:0.24 }
+    ];
+    formants.forEach(function(f){
+      var bp = ctx.createBiquadFilter();
+      bp.type = 'bandpass'; bp.Q.value = f.q;
+      bp.frequency.setValueAtTime(f.a, t);
+      bp.frequency.linearRampToValueAtTime(f.b, t + dur*0.42);
+      bp.frequency.linearRampToValueAtTime(f.c, t + dur);
+      var fg = ctx.createGain(); fg.gain.value = f.g;
+      env.connect(bp); bp.connect(fg); fg.connect(out);
+    });
+
+    // 輕微氣聲
+    var noise = ctx.createBufferSource(); noise.buffer = noiseBuffer;
+    var nf = ctx.createBiquadFilter(); nf.type = 'bandpass'; nf.frequency.value = 1900; nf.Q.value = 0.8;
+    var ng = ctx.createGain();
+    ng.gain.setValueAtTime(0.0001, t);
+    ng.gain.exponentialRampToValueAtTime(0.035, t + 0.02);
+    ng.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    noise.connect(nf); nf.connect(ng); ng.connect(out);
+
+    osc.start(t); osc.stop(t + dur + 0.02);
+    lfo.start(t); lfo.stop(t + dur + 0.02);
+    noise.start(t); noise.stop(t + dur + 0.02);
+  }
+
+  /* 雀叫：一拍一聲，單次上揚再回落嘅頻率掃描；重拍只改音高同音量 */
+  function birdChirp(t, accent, interval){
+    var dur = Math.max(0.055, Math.min(accent ? 0.115 : 0.090, interval * 0.60));
+    var out = newOut(accent ? 0.90 : 0.62);
+    var f0 = accent ? 2900 : 2350;
+    var f1 = f0*1.75, f2 = f0*1.12;
+
+    var osc = ctx.createOscillator(); osc.type = 'sine';
+    osc.frequency.setValueAtTime(f0, t);
+    osc.frequency.exponentialRampToValueAtTime(f1, t + dur*0.42);
+    osc.frequency.exponentialRampToValueAtTime(f2, t + dur);
+
+    var harm = ctx.createOscillator(); harm.type = 'triangle';
+    harm.frequency.setValueAtTime(f0*2, t);
+    harm.frequency.exponentialRampToValueAtTime(f1*2, t + dur*0.42);
+    harm.frequency.exponentialRampToValueAtTime(f2*2, t + dur);
+
+    var g = ctx.createGain();
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.exponentialRampToValueAtTime(0.34, t + 0.007);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    var hg = ctx.createGain(); hg.gain.value = 0.16;
+
+    osc.connect(g); harm.connect(hg); hg.connect(g); g.connect(out);
+    osc.start(t); osc.stop(t + dur + 0.01);
+    harm.start(t); harm.stop(t + dur + 0.01);
+  }
+
+  /* ---------- 排程（預先寫定拍子表，唔靠 setInterval 直接播） ---------- */
+  function scheduleBeat(beat, time){
+    var accent = (beat === 0);
+    var interval = 60 / bpm;
+    var sound = (mode === 'mix') ? (accent ? 'cat' : 'bird') : mode;
+    if(sound === 'cat'){ playCat(time, accent, interval, beat); }
+    else { birdChirp(time, accent, interval); }
+    uiQueue.push({ beat: beat, time: time, accent: accent, bird: sound === 'bird' });
+  }
+
+  function scheduler(){
+    if(!playing) return;
+    while(nextNoteTime < ctx.currentTime + SCHEDULE_AHEAD){
+      scheduleBeat(beatIndex, nextNoteTime);
+      nextNoteTime += 60 / bpm;
+      beatIndex = (beatIndex + 1) % beats;
+    }
+  }
+
+  function draw(){
+    if(!playing) return;
+    while(uiQueue.length && uiQueue[0].time <= ctx.currentTime + 0.012){
+      var e = uiQueue.shift();
+      paintDots(e.beat, e.bird);
+      pulse(e.accent);
+      if(vibrateOn && navigator.vibrate){ navigator.vibrate(e.accent ? 32 : 12); }
+    }
+    rafId = requestAnimationFrame(draw);
+  }
+
+  /* ---------- 畫面 ---------- */
+  function paintDots(active, isBird){
+    var children = dotsBox.children;
+    for(var i=0;i<children.length;i++){
+      children[i].className = 'dot' + (i===0 ? ' first' : '') + (i===active ? (isBird ? ' on bird' : ' on') : '');
+    }
+  }
+  function buildDots(){
+    dotsBox.innerHTML = '';
+    for(var i=0;i<beats;i++){
+      var d = document.createElement('div');
+      d.className = 'dot' + (i===0 ? ' first' : '');
+      dotsBox.appendChild(d);
+    }
+  }
+  function pulse(accent){
+    if(!disc.animate) return;
+    disc.animate(
+      [
+        { transform:'scale(' + (accent ? 1.14 : 1.08) + ')', borderColor: accent ? '#ffb45c' : '#6fd6c4' },
+        { transform:'scale(1)', borderColor:'#3a4358' }
+      ],
+      { duration: 230, easing:'ease-out' }
+    );
+  }
+  function tempoMark(){
+    if(bpm < 70) return '好慢';
+    if(bpm < 95) return '慢';
+    if(bpm < 130) return '中速';
+    if(bpm < 170) return '快';
+    return '好快';
+  }
+  function setBpm(v){
+    bpm = Math.max(40, Math.min(240, Math.round(v)));
+    bpmNum.textContent = bpm;
+    bpmRange.value = bpm;
+    mark.textContent = tempoMark();
+    var chips = document.querySelectorAll('.chip');
+    for(var i=0;i<chips.length;i++){
+      chips[i].className = 'chip' + (Number(chips[i].getAttribute('data-bpm')) === bpm ? ' active' : '');
+    }
+  }
+  function setIcon(){
+    // SVG 元素嘅 className 係唯讀，要用 setAttribute
+    icoCat.setAttribute('class', mode === 'cat' ? 'show' : '');
+    icoBird.setAttribute('class', mode === 'bird' ? 'show' : '');
+    icoMix.setAttribute('class', mode === 'mix' ? 'show' : '');
+  }
+  function previewSound(){
+    if(!ensureAudio()) return;
+    try { ctx.resume(); } catch(e){}
+    // 停止時曾將 sessionGain 降到 0，試聽前要還原
+    sessionGain.gain.cancelScheduledValues(ctx.currentTime);
+    sessionGain.gain.setValueAtTime(1, ctx.currentTime);
+    var t = ctx.currentTime + 0.03;
+    if(mode === 'bird'){ birdChirp(t, true, 0.5); }
+    else { playCat(t, mode === 'mix', 0.5, 0); }
+  }
+
+  /* ---------- 開始／停止 ---------- */
+  async function start(){
+    if(!ensureAudio()) return;
+    // 錄音係同步解析，唔使等 decode；即刻排程
+    try { ctx.resume(); } catch(e){}
+    sessionGain.gain.cancelScheduledValues(ctx.currentTime);
+    sessionGain.gain.setValueAtTime(1, ctx.currentTime);
+    playing = true;
+    beatIndex = 0;
+    uiQueue = [];
+    nextNoteTime = ctx.currentTime + 0.08;
+    timerId = setInterval(scheduler, LOOKAHEAD);
+    scheduler();
+    rafId = requestAnimationFrame(draw);
+    playBtn.textContent = '■ 停止';
+    playBtn.classList.add('stop');
+    if('wakeLock' in navigator){
+      try { wakeLock = await navigator.wakeLock.request('screen'); } catch(e){}
+    }
+  }
+  function stop(){
+    playing = false;
+    clearInterval(timerId);
+    cancelAnimationFrame(rafId);
+    uiQueue = [];
+    if(sessionGain){
+      sessionGain.gain.cancelScheduledValues(ctx.currentTime);
+      sessionGain.gain.setTargetAtTime(0, ctx.currentTime, 0.008);
+    }
+    if(navigator.vibrate){ navigator.vibrate(0); }
+    if(wakeLock){ try { wakeLock.release(); } catch(e){} wakeLock = null; }
+    playBtn.textContent = '▶ 開始';
+    playBtn.classList.remove('stop');
+    paintDots(-1, false);
+  }
+  function toggle(){ playing ? stop() : start(); }
+
+  /* ---------- 事件 ---------- */
+  playBtn.addEventListener('click', toggle);
+  $('plus').addEventListener('click', function(){ setBpm(bpm+1); });
+  $('minus').addEventListener('click', function(){ setBpm(bpm-1); });
+  bpmRange.addEventListener('input', function(){ setBpm(Number(this.value)); });
+
+  var chipEls = document.querySelectorAll('.chip');
+  for(var c=0;c<chipEls.length;c++){
+    chipEls[c].addEventListener('click', function(){ setBpm(Number(this.getAttribute('data-bpm'))); });
+  }
+
+  var soundBtns = document.querySelectorAll('#soundSeg button');
+  for(var s=0;s<soundBtns.length;s++){
+    soundBtns[s].addEventListener('click', function(){
+      mode = this.getAttribute('data-mode');
+      for(var j=0;j<soundBtns.length;j++){
+        soundBtns[j].className = (soundBtns[j] === this) ? (mode === 'bird' ? 'active b' : 'active') : (j===1 ? 'b' : '');
+      }
+      setIcon();
+      if(!playing) previewSound();
+    });
+  }
+
+  $('preview').addEventListener('click', previewSound);
+
+  var beatBtns = document.querySelectorAll('#beatBar button');
+  for(var b=0;b<beatBtns.length;b++){
+    beatBtns[b].addEventListener('click', function(){
+      beats = Number(this.getAttribute('data-beats'));
+      for(var j=0;j<beatBtns.length;j++){ beatBtns[j].className = (beatBtns[j] === this) ? 'active' : ''; }
+      buildDots();
+      if(playing){ beatIndex = 0; }
+    });
+  }
+
+  $('vol').addEventListener('input', function(){
+    volume = Number(this.value)/100;
+    if(master){ master.gain.setTargetAtTime(volume, ctx.currentTime, 0.01); }
+  });
+
+  $('vibToggle').addEventListener('click', function(){
+    vibrateOn = !vibrateOn;
+    $('vibSwitch').className = 'switch' + (vibrateOn ? ' on' : '');
+    if(vibrateOn && navigator.vibrate){ navigator.vibrate(20); }
+  });
+
+  var taps = [];
+  $('tap').addEventListener('click', function(){
+    var now = performance.now();
+    taps = taps.filter(function(x){ return now - x < 2500; });
+    taps.push(now);
+    if(taps.length > 6){ taps.shift(); }
+    if(taps.length >= 2){
+      var sum = 0;
+      for(var i=1;i<taps.length;i++){ sum += taps[i] - taps[i-1]; }
+      var avg = sum / (taps.length-1);
+      if(avg > 0){ setBpm(60000/avg); }
+    }
+    $('tap').animate ? $('tap').animate([{transform:'scale(.95)'},{transform:'scale(1)'}],{duration:120}) : null;
+  });
+
+  document.addEventListener('keydown', function(e){
+    if(e.code === 'Space' && e.target.tagName !== 'INPUT' && e.target.tagName !== 'BUTTON'){
+      e.preventDefault(); toggle();
+    }
+  });
+
+  document.addEventListener('visibilitychange', function(){
+    if(document.hidden && wakeLock){ try { wakeLock.release(); } catch(e){} wakeLock = null; }
+    else if(!document.hidden && playing && 'wakeLock' in navigator){
+      navigator.wakeLock.request('screen').then(function(w){ wakeLock = w; }).catch(function(){});
+    }
+  });
+
+  /* ---------- 初始化 ---------- */
+  var warnEl = document.getElementById('jsWarn');
+  if(warnEl){ warnEl.style.display = 'none'; }   // 行到呢度即 JS 正常
+  buildDots();
+  setBpm(100);
+  setIcon();
+  var ua = navigator.userAgent || '未知';
+  setStatus('JavaScript 正常 ・ ' + (/Chrome|Chromium/i.test(ua) ? 'Chrome 系瀏覽器' : '非 Chrome：' + ua.slice(0, 60)) +
+            ' ・ 撳「開始」會載入貓聲錄音同啟用音效');
+})();
+}catch(err){
+  if(window.__diag){ window.__diag('初始化失敗：' + (err && err.message ? err.message : String(err))); }
+}
+</script>
+</body>
+</html>
